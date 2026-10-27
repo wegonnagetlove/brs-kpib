@@ -217,7 +217,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
 
   <section id="t-rep" hidden>
     <div class="card">
-      <p class="hint" style="margin:0">Соберите отчёт для преподавателя: сводная таблица и отдельный блок на каждого студента с баллами, пропусками, заявками и прогнозом. Кнопка откроет окно печати, там выберите «Сохранить как PDF».</p>
+      <p class="hint" style="margin:0">Соберите отчёт для преподавателя: сводная таблица и отдельный блок на каждого студента с баллами, пропусками, заявками к учёту и итогом. Кнопка откроет окно печати, там выберите «Сохранить как PDF».</p>
       <div class="rep-opts">
         <fieldset><legend>Кому и от кого</legend>
           <label class="col">Преподаватель<input id="r-to" type="text" value="Зуевой Анне Сергеевне"></label>
@@ -234,7 +234,6 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
           <label><input type="checkbox" id="r-apps" checked> Заявки к учёту</label>
           <label><input type="checkbox" id="r-done"> Уже учтённые заявки</label>
           <label><input type="checkbox" id="r-err" checked> Исправления ошибок</label>
-          <label><input type="checkbox" id="r-fc" checked> Прогноз оценки</label>
           <label><input type="checkbox" id="r-pb"> Каждый студент с новой страницы</label>
         </fieldset>
         <fieldset><legend>Студенты</legend>
@@ -566,11 +565,11 @@ $("r-make").onclick=async()=>{
     const today=new Date(),ymd=String(today.getFullYear()).slice(2)+String(today.getMonth()+1).padStart(2,"0")+String(today.getDate()).padStart(2,"0");
     const gcls=g=>g[1]==="ok"?"ok":g[1]==="warn"?"warn":"bad";
     let h=`<h1>Баллы БРС и заявки на учёт мероприятий</h1><p class="sub">Группа 104 КПИБ, ВШГА МГУ · ${esc($("r-to").value)?"Кому: "+esc($("r-to").value)+" · ":""}${esc($("r-from").value)?"От: "+esc($("r-from").value)+" · ":""}сформировано ${today.toLocaleDateString("ru-RU")} · журнал на ${subs.map(s=>s.sheet+" "+fmtD(asof[s.id]).slice(0,5)).join(", ")}</p>`;
-    if(opt("r-sum")){h+=`<table><thead><tr><th>Студент</th>${subs.map(s=>`<th class="n">${s.sheet}<br><span class="muted">журнал / к учёту${opt("r-fc")?" / прогноз":""}</span></th>`).join("")}</tr></thead><tbody>`;
-      data.forEach(d=>{h+=`<tr><td class="nm">${esc(d.name)}</td>${subs.map(s=>{const r=d.res[s.id];return`<td class="n">${r.cur??"нет"} / ${r.pend?"+"+r.pend:"0"}${opt("r-fc")?` / <span class="${gcls(r.g)}">${r.total}</span>`:""}</td>`}).join("")}</tr>`});h+="</tbody></table>"}
+    if(opt("r-sum")){h+=`<table><thead><tr><th>Студент</th>${subs.map(s=>`<th class="n">${s.sheet}<br><span class="muted">журнал / добавить / итого</span></th>`).join("")}</tr></thead><tbody>`;
+      data.forEach(d=>{h+=`<tr><td class="nm">${esc(d.name)}</td>${subs.map(s=>{const r=d.res[s.id];return`<td class="n">${r.cur??"нет"} / ${r.pend?"+"+r.pend:"0"} / <b>${(r.cur||0)+r.pend}</b></td>`}).join("")}</tr>`});h+="</tbody></table>"}
     data.forEach((d,ix)=>{h+=`<div class="st${opt("r-pb")||(ix===0&&opt("r-sum"))?" pb":""}"><h2>${esc(d.name)}</h2>`;
-      h+=`<table><thead><tr><th>Предмет</th><th class="n">Баллы в журнале</th><th class="n">Пропуски</th><th class="n">Заявки к учёту</th>${opt("r-fc")?'<th class="n">Осталось занятий</th><th class="n">Прогноз</th><th>Оценка</th>':""}</tr></thead><tbody>`;
-      subs.forEach(s=>{const r=d.res[s.id];h+=`<tr><td>${s.name}</td><td class="n">${r.cur??"нет данных"}</td><td class="n">${r.abs}</td><td class="n">${r.pend?"+"+r.pend:"нет"}</td>${opt("r-fc")?`<td class="n">${r.L}</td><td class="n">${r.total}</td><td class="${gcls(r.g)}">${r.g[0]}</td>`:""}</tr>`});
+      h+=`<table><thead><tr><th>Предмет</th><th class="n">Баллы в журнале</th><th class="n">Пропуски</th><th class="n">Добавить по заявкам</th><th class="n">Итого</th></tr></thead><tbody>`;
+      subs.forEach(s=>{const r=d.res[s.id];h+=`<tr><td>${s.name}</td><td class="n">${r.cur??"нет данных"}</td><td class="n">${r.abs}</td><td class="n">${r.pend?"+"+r.pend:"нет"}</td><td class="n"><b>${r.cur==null?"нет данных":r.cur+r.pend}</b></td></tr>`});
       h+="</tbody></table>";
       const rowsA=[],rowsE=[];
       subs.forEach(s=>d.res[s.id].mine.forEach(a=>{
@@ -582,7 +581,7 @@ $("r-make").onclick=async()=>{
       if(rowsE.length)h+=`<table><thead><tr><th>Предмет</th><th class="n">Дата</th><th>Исправление в журнале</th><th class="n">Разница</th></tr></thead><tbody>${rowsE.join("")}</tbody></table>`;
       if(!rowsA.length&&!rowsE.length&&(opt("r-apps")||opt("r-err")))h+='<p class="muted">Заявок к учёту нет.</p>';
       h+="</div>"});
-    h+=`<p class="note">Баллы журнала взяты из таблицы группы. Баллы за заявки посчитаны ориентировочно по шкале БРС кафедры: очно 5, онлайн 3, доклад и выезд по 5, публикация 10, оргкомитет 2. Прогноз: баллы журнала, заявки к учёту и 5 баллов за каждое оставшееся занятие по расписанию при очном посещении. Заявки «уже в журнале» определены по примечаниям в журнале.</p><div class="sign"><span>${today.toLocaleDateString("ru-RU")}</span><span>${esc($("r-from").value)} ____________</span></div>`;
+    h+=`<p class="note">Баллы журнала взяты из таблицы группы. Баллы за заявки посчитаны ориентировочно по шкале БРС кафедры: очно 5, онлайн 3, доклад и выезд по 5, публикация 10, оргкомитет 2. Итого: баллы журнала и баллы по заявкам к учёту. Заявки «уже в журнале» определены по примечаниям в журнале.</p><div class="sign"><span>${today.toLocaleDateString("ru-RU")}</span><span>${esc($("r-from").value)} ____________</span></div>`;
     $("report").innerHTML=h;
     const old=document.title;document.title="БРС="+(who.length===1?who[0].split(" ")[0]:"104КПИБ")+"="+ymd;
     $("r-status").textContent="Готово. В окне печати выберите «Сохранить как PDF».";
