@@ -114,7 +114,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
 .rep-who{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px}
 #report{display:none}
 @media print{
-  @page{size:A4;margin:14mm 12mm}
+  @page{size:A4 landscape;margin:12mm 12mm}
   html,body{background:#fff}
   .wrap{display:none!important}
   #report{display:block;color:#202124;font:10pt/1.3 var(--font)}
@@ -126,7 +126,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
   #report th{background:#F1F3F4;color:#5F6368;font-weight:600}
   #report td.n,#report th.n{text-align:center;white-space:nowrap}
   #report td.nm{white-space:nowrap;width:1%}
-  #report td{overflow-wrap:anywhere}#report a{color:#1a56c4;text-decoration:underline}
+  #report td{overflow-wrap:anywhere}#report td.ttl{min-width:55mm}#report a.url{font-size:7pt;white-space:nowrap;overflow-wrap:normal}#report a{color:#1a56c4;text-decoration:underline}
   #report .st{break-inside:avoid;margin:0 0 6mm}
   #report .pb{break-before:page}
   #report .ok{color:#137333;font-weight:600}#report .warn{color:#8a5a00;font-weight:600}#report .bad{color:#b3261e;font-weight:600}
@@ -428,11 +428,12 @@ async function appRows(){
   return (await getCSV(URL_APPS)).slice(1).map(([name,date,title,role,info,subjRaw,status])=>({name,date,title,role,info,subjRaw,status}))}
 // не показывать: мероприятия, которые засчитываются кафедрой иначе (Лекторий-Фест, ИИ-аватары), и тестовые строки
 const EXCLUDE=/лектори|аватар|^\s*тест\s*$/i;
-function linkify(v){const t=String(v||"").trim();if(!t)return"";
+function linkify(v,full){const t=String(v||"").trim();if(!t)return"";
   return t.split(/(https?:\/\/[^\s<>"]+)/g).map((x,i)=>{if(i%2===0)return esc(x);const u=x.replace(/[.,;:)»]+$/,""),tail=x.slice(u.length);
+    if(full){const c=u.replace(/^(https:\/\/drive\.google\.com\/file\/d\/[^/?#]+).*$/,"$1").replace(/[?&]usp=[^&]*$/,"");const shown=c.length>90?c.replace(/^(https?:\/\/[^/]+).*$/,"$1/…"):c;return`<a class="url" href="${esc(u)}" target="_blank" rel="noopener">${esc(shown)}</a>${esc(tail)}`}
     const lab=/drive\.google|docs\.google/.test(u)?"файл на Google Диске":/disk\.yandex|yadi\.sk/.test(u)?"файл на Яндекс Диске":u.replace(/^https?:\/\/(www\.)?/,"").slice(0,45)+(u.length>55?"…":"");
     return`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(lab)}</a>${esc(tail)}`}).join("")}
-function proofHTML(v){const t=String(v||"").trim();if(!t||/^нет$/i.test(t))return"";return t.split(/\s*;\s*/).filter(Boolean).map(linkify).join("<br>")}
+function proofHTML(v,full){const t=String(v||"").trim();if(!t||/^нет$/i.test(t))return"";return t.split(/\s*;\s*/).filter(Boolean).map(x=>linkify(x,full)).join("<br>")}
 async function loadApps(name){
   const ul=$("apps");if(!name){ul.innerHTML='<li><span class="hint">Выберите себя вверху.</span></li>';$("addall").hidden=true;return}
   try{const rows=await appRows();const key=norm(name);
@@ -576,7 +577,7 @@ $("r-make").onclick=async()=>{
         if(a.isErr){if(opt("r-err"))rowsE.push(`<tr><td>${s.sheet}</td><td class="n">${esc(a.date)}</td><td>${esc(a.info||"без пояснения")}</td><td class="n">${a.p?"+"+a.p:"уточнить"}</td></tr>`);return}
         const st=a.counted?'<span class="ok">уже в журнале</span>':a.dup?'<span class="muted">повтор заявки</span>':a.other?`<span class="warn">возможно, уже учтено в ${a.other.sheet}</span>`:"к учёту";
         if(a.counted&&!opt("r-done"))return;if(!opt("r-apps")&&!a.counted)return;
-        rowsA.push(`<tr><td class="nm">${esc(d.name)}</td><td class="n">${esc(a.date)}</td><td>${esc(a.title)}</td><td class="nm">${esc(a.role)}</td><td>${linkify(a.info)}</td><td class="lnk">${proofHTML(a.proof)}</td><td>${s.sheet}</td></tr>`)}));
+        rowsA.push(`<tr><td class="nm">${esc(d.name)}</td><td class="n">${esc(a.date)}</td><td class="ttl">${esc(a.title)}</td><td class="nm">${esc(a.role)}</td><td>${linkify(a.info,true)}</td><td class="lnk">${proofHTML(a.proof,true)}</td><td>${s.sheet}</td></tr>`)}));
       if(rowsA.length)h+=`<table><thead><tr><th>ФИО</th><th class="n">Дата</th><th>Мероприятие</th><th>Роль</th><th>Доп. информация</th><th>Ссылка на подтверждение</th><th>Предмет</th></tr></thead><tbody>${rowsA.join("")}</tbody></table>`;
       if(rowsE.length)h+=`<table><thead><tr><th>Предмет</th><th class="n">Дата</th><th>Исправление в журнале</th><th class="n">Разница</th></tr></thead><tbody>${rowsE.join("")}</tbody></table>`;
       if(!rowsA.length&&!rowsE.length&&(opt("r-apps")||opt("r-err")))h+='<p class="muted">Заявок к учёту нет.</p>';
