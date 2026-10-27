@@ -126,6 +126,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
   #report th{background:#F1F3F4;color:#5F6368;font-weight:600}
   #report td.n,#report th.n{text-align:center;white-space:nowrap}
   #report td.nm{white-space:nowrap;width:1%}
+  #report td{overflow-wrap:anywhere}#report a{color:#1a56c4;text-decoration:underline}
   #report .st{break-inside:avoid;margin:0 0 6mm}
   #report .pb{break-before:page}
   #report .ok{color:#137333;font-weight:600}#report .warn{color:#8a5a00;font-weight:600}#report .bad{color:#b3261e;font-weight:600}
@@ -422,11 +423,13 @@ const URL_EDIT=BASE+"&headers=1&sheet="+encodeURIComponent("Заявки");
 async function appRows(){
   try{const rows=await getCSV(URL_EDIT),h=rows[0].map(norm);
     if(h[0]&&h[0].startsWith("отметка")&&h.some(x=>x.startsWith("скрыть"))){CAN_EDIT=true;
-      return rows.slice(1).filter(r=>r[1]&&!/^да/.test(norm(r[9]))).map(r=>({ts:r[0],name:r[1],date:r[2],title:r[3],role:r[4],info:r[5],subjRaw:r[7],status:r[8]}))}}catch(e){}
+      return rows.slice(1).filter(r=>r[1]&&!/^да/.test(norm(r[9]))).map(r=>({ts:r[0],name:r[1],date:r[2],title:r[3],role:r[4],info:r[5],proof:r[6],subjRaw:r[7],status:r[8]}))}}catch(e){}
   CAN_EDIT=false;
   return (await getCSV(URL_APPS)).slice(1).map(([name,date,title,role,info,subjRaw,status])=>({name,date,title,role,info,subjRaw,status}))}
 // не показывать: мероприятия, которые засчитываются кафедрой иначе (Лекторий-Фест, ИИ-аватары), и тестовые строки
 const EXCLUDE=/лектори|аватар|^\s*тест\s*$/i;
+function proofHTML(v){const t=String(v||"").trim();if(!t||/^нет$/i.test(t))return"";
+  return t.split(/\s*;\s*/).filter(Boolean).map(x=>/^https?:\/\//.test(x)?`<a href="${esc(x)}" target="_blank" rel="noopener">${/drive\.google/.test(x)?"файл на Диске":esc(x.replace(/^https?:\/\//,"").slice(0,40))}</a>`:esc(x)).join("<br>")}
 async function loadApps(name){
   const ul=$("apps");if(!name){ul.innerHTML='<li><span class="hint">Выберите себя вверху.</span></li>';$("addall").hidden=true;return}
   try{const rows=await appRows();const key=norm(name);
@@ -544,12 +547,12 @@ $("r-make").onclick=async()=>{
     const data=who.map(name=>{const key=norm(name),row=T.rows.find(r=>norm(r[0])===key)||[];
       const notes={},res={};SUBJ.forEach(s=>{const n=T.ix(s.sheet,"n");notes[s.id]=n>=0?row[n]||"":""});
       const seen=new Set();
-      const apps=appsRows.filter(r=>norm(r.name)===key).map(({date,title,role,info,subjRaw:subj,status})=>{
+      const apps=appsRows.filter(r=>norm(r.name)===key).map(({date,title,role,info,proof,subjRaw:subj,status})=>{
         const sid=subjOf(subj),isErr=/ошибка/i.test(role||"")||/^\s*ошибка\s*$/i.test(title||""),e=estimate(title,role,info);
         const k=norm(title)+"|"+sid+"|"+date,dup=seen.has(k);seen.add(k);
         const counted=sid&&matchNote(notes[sid],date,title,status);
         const other=!counted&&!isErr?SUBJ.find(s=>s.id!==sid&&matchNote(notes[s.id],"",title,"")):null;
-        return{date,title:String(title||"").replace(/\s*https?:\S+/g,"").trim()||title,role,info,sid,isErr,p:e.p,how:e.t,counted,dup,other}});
+        return{date,title:String(title||"").replace(/\s*https?:\S+/g,"").trim()||title,role,info,proof,sid,isErr,p:e.p,how:e.t,counted,dup,other}});
       subs.forEach(s=>{const i=T.ix(s.sheet,"s"),a=T.ix(s.sheet,"a");const cur=num(row[i]),abs=num(row[a])||0;const d=toISO(T.date(i));if(d)asof[s.id]=d;
         const L=s.dates.filter(x=>x>(d||"")).length;
         const mine=apps.filter(x=>x.sid===s.id);const pend=mine.filter(x=>!x.counted&&!x.dup&&!x.other).reduce((t,x)=>t+x.p,0);
@@ -569,8 +572,8 @@ $("r-make").onclick=async()=>{
         if(a.isErr){if(opt("r-err"))rowsE.push(`<tr><td>${s.sheet}</td><td class="n">${esc(a.date)}</td><td>${esc(a.info||"без пояснения")}</td><td class="n">${a.p?"+"+a.p:"уточнить"}</td></tr>`);return}
         const st=a.counted?'<span class="ok">уже в журнале</span>':a.dup?'<span class="muted">повтор заявки</span>':a.other?`<span class="warn">возможно, уже учтено в ${a.other.sheet}</span>`:"к учёту";
         if(a.counted&&!opt("r-done"))return;if(!opt("r-apps")&&!a.counted)return;
-        rowsA.push(`<tr><td>${s.sheet}</td><td class="n">${esc(a.date)}</td><td>${esc(a.title)}</td><td>${esc(a.role)}${a.how?`<br><span class="muted">${esc(a.how)}</span>`:""}</td><td class="n">${a.counted||a.dup||a.other?"":"+"+a.p}</td><td>${st}</td></tr>`)}));
-      if(rowsA.length)h+=`<table><thead><tr><th>Предмет</th><th class="n">Дата</th><th>Мероприятие</th><th>Роль, формат</th><th class="n">Баллы</th><th>Статус</th></tr></thead><tbody>${rowsA.join("")}</tbody></table>`;
+        rowsA.push(`<tr><td class="nm">${esc(d.name)}</td><td class="n">${esc(a.date)}</td><td>${esc(a.title)}</td><td class="nm">${esc(a.role)}</td><td>${esc(a.info||"")}</td><td class="lnk">${proofHTML(a.proof)}</td><td>${s.sheet}</td></tr>`)}));
+      if(rowsA.length)h+=`<table><thead><tr><th>ФИО</th><th class="n">Дата</th><th>Мероприятие</th><th>Роль</th><th>Доп. информация</th><th>Ссылка на подтверждение</th><th>Предмет</th></tr></thead><tbody>${rowsA.join("")}</tbody></table>`;
       if(rowsE.length)h+=`<table><thead><tr><th>Предмет</th><th class="n">Дата</th><th>Исправление в журнале</th><th class="n">Разница</th></tr></thead><tbody>${rowsE.join("")}</tbody></table>`;
       if(!rowsA.length&&!rowsE.length&&(opt("r-apps")||opt("r-err")))h+='<p class="muted">Заявок к учёту нет.</p>';
       h+="</div>"});
