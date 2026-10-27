@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>БРС 104 КПИБ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#FFFFFF;--fg:#202124;--muted:#5F6368;--faint:#9AA0A6;--fill:#F1F3F4;--line:#DADCE0;
+  --blue:#4285F4;--red:#EA4335;--yellow:#FBBC04;--green:#34A853;
+  --blue-t:#E8F0FE;--red-t:#FCE8E6;--yellow-t:#FEF7E0;--green-t:#E6F4EA;
+  --font:"Google Sans","Product Sans",Roboto,"Segoe UI",Arial,sans-serif;--mono:"Roboto Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 var(--font)}
+.wrap{max-width:980px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px}
+.dots{display:flex;gap:4px}.dots i{width:8px;height:8px;border-radius:50%;display:block}
+h1{font-size:20px;margin:0;font-weight:700}
+select,input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+select:focus,input:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+#who{min-width:min(320px,100%);font-weight:500}
+.status{color:var(--muted);font-size:13px;margin:8px 0 0;min-height:1em}
+nav{display:flex;gap:4px;margin:18px 0 18px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{font:inherit;font-weight:500;border:0;background:none;color:var(--muted);padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--blue);border-bottom-color:var(--blue)}
+section[hidden]{display:none}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.thead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.thead h2{font-size:17px;margin:0}
+.thead small{color:var(--faint);font-size:12px;text-align:right}
+.nums{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.nums b{font:500 34px/1 var(--mono);font-variant-numeric:tabular-nums}
+.nums span{color:var(--muted);font-size:14px}
+.bar{position:relative;height:8px;border-radius:99px;background:var(--fill);overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:99px}
+.bar .f{background:#C6DAFC}.bar .c{background:var(--blue)}
+.bar .t{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);opacity:.5}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.row b{color:var(--fg)}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:500}
+.p-ok{background:var(--green-t);color:#137333}.p-warn{background:var(--yellow-t);color:#8a5a00}.p-bad{background:var(--red-t);color:#b3261e}
+details.cfg summary{cursor:pointer;color:var(--blue);font-size:13px;list-style:none}
+details.cfg summary::-webkit-details-marker{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:10px}
+.grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.grid input,.grid select{width:100%}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table.days{border-collapse:collapse;width:100%;min-width:520px;font-variant-numeric:tabular-nums}
+.days th,.days td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center}
+.days th{background:var(--fill);font-size:12px;color:var(--muted);font-weight:500;position:sticky;top:0}
+.days td:first-child,.days th:first-child{text-align:left;white-space:nowrap}
+.days tr.today td{background:#FAFBFF}
+.days tr.sum td{font-weight:700;background:var(--fill)}
+.c{display:inline-block;min-width:34px;padding:3px 6px;border-radius:8px;font-family:var(--mono);font-size:13px}
+.c.ok{background:var(--green-t);color:#137333}.c.on{background:var(--yellow-t);color:#8a5a00}.c.miss{background:var(--red-t);color:#b3261e}.c.fut{min-width:22px;height:22px;padding:0;border:1px dashed var(--line);vertical-align:middle}.c.plus{background:var(--blue-t);color:#1a56c4}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 0 0}
+.list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:14px}
+.list li{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.list li:last-child{border-bottom:0}
+.list .t{min-width:0}.list .t div{font-weight:500;overflow-wrap:anywhere}.list .t small{color:var(--muted);font-size:12px}
+.list .r{display:flex;align-items:center;gap:8px;flex:none}
+.list li.ed{flex-wrap:wrap}
+.edit{flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin-top:6px}
+.edit label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.edit .wide{grid-column:1/-1}
+.edit .chk{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--fg)}
+.edit .act{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:500;border:0;border-radius:10px;padding:10px 16px;background:var(--blue);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:var(--bg);color:var(--fg);border:1px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.bar2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.seg{display:inline-flex;background:var(--fill);border-radius:99px;padding:3px;gap:3px;align-self:flex-start}
+.seg button{font:inherit;font-size:14px;border:0;background:transparent;padding:7px 14px;border-radius:99px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--bg);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
+.f2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+.f2[hidden]{display:none}
+.f2 label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.f2 .wide{grid-column:1/-1}
+.f2 input,.f2 select{width:100%}
+.f2 [hidden],.f2 label[hidden]{display:none!important}
+.f2 .chips label{flex-direction:row;font-size:14px;color:var(--fg)}
+.f2 .chips input{width:16px}
+@media (max-width:480px){nav button{padding:10px 10px}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:6px 12px;font-size:14px;color:var(--fg);cursor:pointer}
+.chips input{width:16px;height:16px;margin:0}
+.sendrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
+.big{font:500 26px/1 var(--mono)}
+.err{outline:2px solid var(--red)!important;outline-offset:1px}
+.filerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.linkbtn{font:inherit;font-size:12px;border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
+details.more{margin-top:28px;border-top:1px solid var(--line);padding-top:14px}
+details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;margin-top:12px}
+.rules table{border-collapse:collapse;width:100%;font-size:13px}
+.rules td{border-bottom:1px solid var(--line);padding:5px 0}.rules td:last-child{text-align:right;padding-left:8px}
+.empty{color:var(--muted);text-align:center;padding:32px 16px;border:1px dashed var(--line);border-radius:14px}
+.calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:12px}
+.calc label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.calc select{width:100%}
+.rep-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.rep-opts fieldset{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.rep-opts legend{font-size:12px;color:var(--muted);padding:0 4px}
+.rep-opts label{display:flex;gap:8px;align-items:center;font-size:14px}
+.rep-opts label.col{flex-direction:column;align-items:stretch;gap:4px;font-size:12px;color:var(--muted)}
+.rep-opts input[type=checkbox],.rep-opts input[type=radio]{width:16px;height:16px;margin:0;flex:none}
+.rep-who{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px}
+#report{display:none}
+@media print{
+  @page{size:A4;margin:14mm 12mm}
+  html,body{background:#fff}
+  .wrap{display:none!important}
+  #report{display:block;color:#202124;font:10pt/1.3 var(--font)}
+  #report h1{font-size:15pt;margin:0 0 2mm}
+  #report .sub{color:#5F6368;font-size:9pt;margin:0 0 5mm}
+  #report h2{font-size:12pt;margin:0 0 2mm;padding:2mm 3mm;background:#F1F3F4;border-left:3px solid #4285F4}
+  #report table{border-collapse:collapse;width:100%;margin:0 0 3mm;font-variant-numeric:tabular-nums}
+  #report th,#report td{border:0.3mm solid #DADCE0;padding:1.3mm 2mm;text-align:left;vertical-align:top;font-size:9pt}
+  #report th{background:#F1F3F4;color:#5F6368;font-weight:600}
+  #report td.n,#report th.n{text-align:center;white-space:nowrap}
+  #report td.nm{white-space:nowrap;width:1%}
+  #report .st{break-inside:avoid;margin:0 0 6mm}
+  #report .pb{break-before:page}
+  #report .ok{color:#137333;font-weight:600}#report .warn{color:#8a5a00;font-weight:600}#report .bad{color:#b3261e;font-weight:600}
+  #report .muted{color:#5F6368}
+  #report .note{font-size:8.5pt;color:#5F6368;margin-top:4mm}
+  #report .sign{display:flex;justify-content:space-between;margin-top:10mm;font-size:10pt}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="dots" aria-hidden="true"><i style="background:var(--blue)"></i><i style="background:var(--red)"></i><i style="background:var(--yellow)"></i><i style="background:var(--green)"></i></div><h1>БРС 104 КПИБ</h1></div>
+    <select id="who" aria-label="Студент"><option value="">Выберите себя</option></select>
+  </header>
+  <p class="status" id="status"></p>
+
+  <nav role="tablist">
+    <button role="tab" data-tab="sum" class="on">Итоги</button>
+    <button role="tab" data-tab="days">По дням</button>
+    <button role="tab" data-tab="apps">Мероприятия</button>
+    <button role="tab" data-tab="send">Подать</button>
+    <button role="tab" data-tab="rep">Отчёт</button>
+  </nav>
+
+  <section id="t-sum"><div class="tiles" id="tiles"></div></section>
+
+  <section id="t-days" hidden>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin:0 0 10px"><input type="checkbox" id="cumul" style="width:16px;height:16px;margin:0"> Показать накопленные баллы</label>
+    <div id="daysbox"></div>
+    <div class="legend"><span><span class="c ok">5</span> очно</span><span><span class="c on">3</span> онлайн</span><span><span class="c miss">н</span> пропуск</span><span><span class="c fut"></span> впереди</span></div>
+  </section>
+
+  <section id="t-apps" hidden>
+    <div class="bar2"><p class="hint" id="appsnote">Заявки из формы. «В журнале» уже входят в ваши баллы.</p><button class="btn sm" id="addall" hidden></button></div>
+    <ul class="list" id="apps"></ul>
+    <details class="more" id="calcbox"><summary>Посчитать баллы за мероприятие вручную</summary>
+      <div class="calc">
+        <label>Предмет<select id="c-subj"></select></label>
+        <label>Участие<select id="c-part"><option value="5">Очно: 5</option><option value="3">Онлайн: 3</option><option value="0">Без участия</option></select></label>
+        <label>Доклад<select id="c-talk"><option value="0">Нет</option><option value="5">На мероприятии: 5</option><option value="5">На занятии с презентацией: 5</option><option value="4">На занятии без презентации: 4</option></select></label>
+        <label>Выезд, публикация<select id="c-extra"><option value="0">Нет</option><option value="5">Выезд: 5</option><option value="10">Публикация: 10</option><option value="15">Выезд и публикация: 15</option></select></label>
+        <label>Диплом, грамота<select id="c-dipl"><option value="0">Нет</option><option value="2">Без места: 2</option><option value="3">3 степень: 3</option><option value="4">2 степень: 4</option><option value="5">1 степень: 5</option></select></label>
+        <label>Другое<select id="c-other"><option value="0">Нет</option><option value="2">Оргкомитет, 2 курс: 2</option><option value="3">Оценка «удовл.» или работа 70%: 3</option><option value="4">«Хор.» или 80%: 4</option><option value="5">«Отл.» или 90%: 5</option></select></label>
+      </div>
+      <div class="sendrow" style="margin-top:12px"><span><span class="big" id="c-total">5</span> <span class="hint" style="display:inline">баллов</span></span><button class="btn sm" id="c-add" type="button">Добавить в прогноз</button></div>
+    </details>
+  </section>
+
+  <section id="t-send" hidden>
+    <form class="card" id="sf" novalidate>
+      <div class="seg" role="tablist"><button type="button" class="on" data-mode="event">Мероприятие</button><button type="button" data-mode="error">Ошибка в баллах</button></div>
+      <div class="f2">
+        <label>ФИО<select id="sf-name"><option value="">Выберите</option></select></label>
+        <label>Предмет<select id="sf-subj"><option value="">Выберите</option>
+          <option value="АПИП - Морозов А.В. (лекции), Зуева А.С. (семинары)">АПИП</option>
+          <option value="ПРОИ - Зуева А.С.">ПРОИ</option>
+          <option value="ПВДИ - Зуева А.С.">ПВДИ</option>
+          <option value="ФилПрава - Батурин Ю.М.">Философия права</option></select></label>
+      </div>
+      <div class="f2" data-for="event">
+        <label class="wide">Название мероприятия<input id="sf-title" type="text" placeholder="Например, конференция в МГИМО"></label>
+        <label>Дата<input id="sf-date" type="date"></label>
+        <label>Роль<select id="sf-role"><option>Слушатель</option><option>Докладчик</option><option value="other">Другое</option></select></label>
+        <label id="sf-role-other-l" hidden>Какая роль<input id="sf-role-other" type="text" placeholder="организатор, участник"></label>
+        <label>Формат<select id="sf-format"><option>Очно</option><option>Онлайн</option></select></label>
+        <div class="wide chips"><label><input type="checkbox" id="sf-pres"> презентация</label><label><input type="checkbox" id="sf-trip"> выезд</label><label><input type="checkbox" id="sf-pub"> публикация</label><label><input type="checkbox" id="sf-dipl"> диплом</label></div>
+      </div>
+      <div class="f2" data-for="error" hidden>
+        <label>Дата занятия<input id="sf-edate" type="date"></label>
+        <label>Стоит в журнале<input id="sf-have" type="number" min="0"></label>
+        <label>Должно быть<input id="sf-want" type="number" min="0"></label>
+        <label class="wide">Что не так<input id="sf-ewhat" type="text" placeholder="Например, была очно, а стоит онлайн"></label>
+      </div>
+      <div class="f2">
+        <div class="wide" id="sf-proofbox" style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;color:var(--muted)">Подтверждение: фото, скриншот, сертификат</span>
+          <div class="filerow" id="sf-filerow" hidden><label class="btn ghost sm" for="sf-file">Прикрепить файл</label><input id="sf-file" type="file" accept="image/*,application/pdf" hidden><span class="hint" id="sf-fname">фото или PDF до 15 МБ</span><button type="button" class="linkbtn" id="sf-fclear" hidden>убрать</button></div>
+          <input id="sf-proof" type="url" placeholder="или ссылка: https://…" aria-label="Ссылка на подтверждение">
+        </div>
+        <label class="wide">Комментарий<input id="sf-extra" type="text" placeholder="по желанию"></label>
+      </div>
+      <div class="sendrow"><span><span class="big" id="sf-points">5</span> <span class="hint" id="sf-pnote" style="display:inline">баллов примерно</span></span><button class="btn" type="submit" id="sf-send">Отправить</button></div>
+      <p class="hint" id="sf-status" role="status"></p>
+    </form>
+  </section>
+
+  <section id="t-rep" hidden>
+    <div class="card">
+      <p class="hint" style="margin:0">Соберите отчёт для преподавателя: сводная таблица и отдельный блок на каждого студента с баллами, пропусками, заявками и прогнозом. Кнопка откроет окно печати, там выберите «Сохранить как PDF».</p>
+      <div class="rep-opts">
+        <fieldset><legend>Кому и от кого</legend>
+          <label class="col">Преподаватель<input id="r-to" type="text" value="Зуевой Анне Сергеевне"></label>
+          <label class="col">От кого<input id="r-from" type="text" placeholder="например, староста группы"></label>
+        </fieldset>
+        <fieldset><legend>Предметы</legend>
+          <label><input type="checkbox" class="r-subj" value="proi" checked> ПРОИ</label>
+          <label><input type="checkbox" class="r-subj" value="pvdi" checked> ПВДИ</label>
+          <label><input type="checkbox" class="r-subj" value="apip" checked> АПИП</label>
+          <label><input type="checkbox" class="r-subj" value="fp" checked> Философия права</label>
+        </fieldset>
+        <fieldset><legend>Что включить</legend>
+          <label><input type="checkbox" id="r-sum" checked> Сводная таблица группы</label>
+          <label><input type="checkbox" id="r-apps" checked> Заявки к учёту</label>
+          <label><input type="checkbox" id="r-done"> Уже учтённые заявки</label>
+          <label><input type="checkbox" id="r-err" checked> Исправления ошибок</label>
+          <label><input type="checkbox" id="r-fc" checked> Прогноз оценки</label>
+          <label><input type="checkbox" id="r-pb"> Каждый студент с новой страницы</label>
+        </fieldset>
+        <fieldset><legend>Студенты</legend>
+          <div style="display:flex;gap:12px;font-size:13px"><button type="button" class="linkbtn" id="r-all">все</button><button type="button" class="linkbtn" id="r-none">никого</button><button type="button" class="linkbtn" id="r-me">только я</button><button type="button" class="linkbtn" id="r-has">у кого есть заявки</button></div>
+          <div class="rep-who" id="r-who"></div>
+        </fieldset>
+      </div>
+      <div class="sendrow"><span class="hint" id="r-status"></span><button class="btn" type="button" id="r-make">Сформировать PDF</button></div>
+    </div>
+  </section>
+
+  <details class="more"><summary>Правила БРС</summary>
+    <div class="rules">
+      <table><tr><td>Допуск</td><td>от 70, пропусков до 9</td></tr><tr><td>Зачёт</td><td>от 100, до 8</td></tr><tr><td>«Удовлетворительно»</td><td>от 100, до 6</td></tr><tr><td>«Хорошо»</td><td>от 110, до 4</td></tr><tr><td>«Отлично» автоматом</td><td>от 120, до 2</td></tr></table>
+      <table><tr><td>Посещение очно / онлайн</td><td>5 / 3</td></tr><tr><td>Мероприятие очно / онлайн</td><td>5 / 3</td></tr><tr><td>Доклад, выезд</td><td>по 5</td></tr><tr><td>Публикация</td><td>10</td></tr><tr><td>Диплом, грамота</td><td>2–5</td></tr><tr><td>Оргкомитет</td><td>2, до 20</td></tr><tr><td>Оценка, работа на занятии</td><td>1–5</td></tr></table>
+    </div>
+    <p style="margin-top:14px"><button class="linkbtn" id="reset" type="button">Очистить мои данные на этом устройстве</button></p>
+  </details>
+</div>
+<div id="report"></div>
+
+<script>
+const NAMES=["Астатурян Тигран Оганесович","Астахова София Юрьевна","Батурина Анастасия Николаевна","Вебер-Гасанова Анна Акимовна","Волченков Дмитрий Алексеевич","Воронина Кристина Николаевна","Давыдов Натан Владимирович","Дацкевич Федор Михайлович","Демихов Валентин Михайлович","Калмаков Даниил Николаевич","Комаристова Мария Викторовна","Корниенко Дмитрий Сергеевич","Малюта Тимофей Дмитриевич","Мартынова Ольга Владимировна","Петросян Нарек Ашотович","Петрухина Полина Игоревна","Подгорнова Елизавета Николаевна","Сакаев Савелий Игоревич","Самсонов Иван Дмитриевич","Фомченко Роман Вячеславович","Хайбулин Амир Алибекович","Халатян Марина Сергеевна","Шарова Дарья Сергеевна"];
+const SUBJ=[
+ {id:"proi",name:"ПРОИ",sheet:"ПРОИ",who:"Зуева А.С.",exam:true,dates:["2026-10-20","2026-11-06","2026-11-13","2026-11-20","2026-11-27","2026-12-04","2026-12-11"]},
+ {id:"pvdi",name:"ПВДИ",sheet:"ПВДИ",who:"Зуева А.С.",exam:true,dates:["2026-10-20","2026-11-03","2026-11-10","2026-11-17","2026-11-24","2026-12-01","2026-12-08"]},
+ {id:"apip",name:"АПИП",sheet:"АПИП",who:"Морозов А.В., Зуева А.С.",exam:true,dates:["2026-10-20","2026-10-30","2026-10-30","2026-11-03","2026-11-10","2026-11-17","2026-11-24","2026-12-08","2026-12-22"]},
+ {id:"fp",name:"Философия права",sheet:"ФилПр",who:"Батурин Ю.М., зачёт",exam:false,dates:["2026-11-06","2026-11-13","2026-11-20","2026-12-04","2026-12-18"]}
+];
+const BASE="https://docs.google.com/spreadsheets/d/1bOVLFCNJrUsn_cAObFh5UW2HjQREmmNCgn4br7tktlQ/gviz/tq?tqx=out:csv";
+const URL_SUM=BASE+"&gid=1254876591", URL_APPS=BASE+"&gid=365553352", URL_SHEET=n=>BASE+"&headers=2&sheet="+encodeURIComponent(n);
+const GFORM="https://docs.google.com/forms/d/e/1FAIpQLSdz8oPgVgvw9Ly8nwD6F_o6vkUUEj3To0x8xspzk8wGfqJqKg";
+const ENTRY={name:"855813369",title:"140246962",date:"2029359212",role:"5795855",extra:"500208328",proof:"1959946490",subj:"1567958107"};
+const UPLOAD_URL="https://script.google.com/macros/s/AKfycbz8ZbP8DbzzDwuItwFivoYcImtpScG19gf3et_N9o78tYTApaFeCCrDTmzxzh5lTGa1nQ/exec";
+
+const $=id=>document.getElementById(id);
+const norm=t=>(t||"").toLowerCase().replace(/ё/g,"е").trim();
+const iso=d=>d.toISOString().slice(0,10);
+const ddmm=d=>d.slice(8,10)+"."+d.slice(5,7);
+const KEY="brs104-v2";
+function blank(){const s={who:"",subj:{},events:[]};SUBJ.forEach(x=>s.subj[x.id]={cur:"",abs:0,asof:iso(new Date()),off:null,on:0,bonus:0,target:x.exam?120:100});return s}
+let S=blank();try{const o=JSON.parse(localStorage.getItem(KEY)||"null");if(o&&o.subj)S=Object.assign(blank(),o)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+
+/* ---------- CSV ---------- */
+function parseCSV(t){const rows=[];let row=[],f="",q=false;for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c==='"')q=true;else if(c===","){row.push(f);f=""}else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;row.push(f);rows.push(row);row=[];f=""}else f+=c}
+  if(f!==""||row.length){row.push(f);rows.push(row)}return rows.map(r=>r.map(x=>x.trim()))}
+let CB=0,LASTERR="";
+function viaScript(u){return new Promise((res,rej)=>{const name="__gv"+(++CB)+"_"+Date.now();const s=document.createElement("script");
+  const done=(ok,v)=>{clearTimeout(t);try{delete window[name]}catch(e){}s.remove();ok?res(v):rej(v)};
+  const t=setTimeout(()=>done(false,new Error("timeout")),15000);
+  window[name]=j=>{try{if(j.status==="error")return done(false,new Error((j.errors&&j.errors[0]&&j.errors[0].detailed_message)||"gviz"));
+    const tb=j.table,head=tb.cols.map(c=>c.label||""),rows=tb.rows.map(r=>(r.c||[]).map(c=>c==null?"":String(c.f!=null?c.f:(c.v==null?"":c.v))));
+    const n=head.length;rows.forEach(r=>{while(r.length<n)r.push("")});
+    done(true,head.some(Boolean)?[head].concat(rows):[new Array(n).fill("")].concat(rows))}catch(e){done(false,e)}};
+  s.onerror=()=>done(false,new Error("script"));
+  s.src=u.replace("tqx=out:csv","tqx=out:json;responseHandler:"+name)+"&t="+Date.now();document.head.appendChild(s)})}
+async function getCSV(u){
+  try{const r=await fetch(u+"&t="+Date.now());if(!r.ok)throw new Error("http "+r.status);const t=await r.text();if(/^\s*</.test(t))throw new Error("html");return parseCSV(t)}
+  catch(e){try{return await viaScript(u)}catch(e2){LASTERR=(e&&e.message)+" / "+(e2&&e2.message);throw e2}}}
+function toISO(v){const m=/(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(v||"");return m?`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:null}
+const num=v=>{const x=parseFloat(String(v).replace(",","."));return isNaN(x)?null:x};
+
+/* ---------- logic ---------- */
+function grade(s,t,a){
+  if(s.exam){if(t>=120&&a<=2)return["«Отлично» автоматом","ok"];if(t>=110&&a<=4)return["«Хорошо»","warn"];if(t>=100&&a<=6)return["«Удовл.»","warn"];if(t>=70&&a<=9)return["Допуск","bad"];return["Нет допуска","bad"]}
+  if(t>=100&&a<=8)return["Зачёт","ok"];if(t>=70&&a<=9)return["Допуск, без зачёта","bad"];return["Нет допуска","bad"]}
+const maxAbs=(s,tg)=>!s.exam?(tg>=100?8:9):tg>=120?2:tg>=110?4:tg>=100?6:9;
+const left=s=>s.dates.filter(d=>d>S.subj[s.id].asof);
+// расписание: лист «Расписание» (Предмет | Дата | Пар), иначе столбцы с датами в листах журнала, иначе встроенное
+const URL_SCHED=BASE+"&headers=1&sheet="+encodeURIComponent("Расписание");let SCHED_SRC="встроенное";
+async function loadSchedule(){
+  try{const rows=await getCSV(URL_SCHED),h=rows[0].map(norm),ps=h.findIndex(x=>x.startsWith("предмет")),pd=h.findIndex(x=>x.startsWith("дата")),pn=h.findIndex(x=>x.startsWith("пар"));
+    if(ps>=0&&pd>=0){const by={};rows.slice(1).forEach(r=>{const sid=subjOf(r[ps]),raw=(r[pd]||"").trim(),d=toISO(raw)||(/^\d{4}-\d\d-\d\d/.test(raw)?raw.slice(0,10):null)||(!/\d/.test(raw)&&pn>=0&&num(r[pn])?"9999-12-31":null);if(!sid||!d)return;
+        const k=pn>=0&&num(r[pn])!=null?Math.max(0,Math.round(num(r[pn]))):1;for(let i=0;i<k;i++)(by[sid]=by[sid]||[]).push(d)});
+      if(Object.keys(by).length){SUBJ.forEach(s=>{if(by[s.id])s.dates=by[s.id].sort()});SCHED_SRC="лист «Расписание»";return}}}catch(e){}
+  let got=false;for(const s of SUBJ){try{const T=await loadSheet(s);const d=T.cols.filter(c=>c.date).map(c=>c.date).sort();if(d.length){s.dates=d;got=true}}catch(e){}}
+  if(got)SCHED_SRC="листы журнала"}
+const evSum=id=>S.events.filter(e=>e.s===id).reduce((a,e)=>a+e.p,0);
+function calc(s){const st=S.subj[s.id],L=left(s).length,cur=num(st.cur)||0;
+  const off=Math.max(0,Math.min(L,st.off==null?L:+st.off)),on=Math.max(0,Math.min(L-off,+st.on||0)),miss=L-off-on,ev=evSum(s.id);
+  const total=cur+off*5+on*3+(+st.bonus||0)+ev,abs=(+st.abs||0)+miss;
+  return{L,off,on,ev,total,abs,need:st.target-total,needAll:st.target-(cur+L*5+ev),g:grade(s,total,abs)}}
+
+/* ---------- Итоги ---------- */
+function tiles(){
+  const box=$("tiles");box.innerHTML="";
+  SUBJ.forEach(s=>{const st=S.subj[s.id],r=calc(s),has=st.cur!=="";
+    const cls=!has?"":(r.abs>maxAbs(s,st.target)?"bad":r.need<=0?"ok":r.need<=10?"warn":"bad");
+    const scale=Math.max(st.target,r.total,1)*1.08,pc=v=>Math.max(0,Math.min(100,v/scale*100));
+    const el=document.createElement("article");el.className="tile";
+    el.innerHTML=`<div class="thead"><h2>${s.name}</h2><small>${s.who}</small></div>
+      ${has?`<div class="nums"><b>${num(st.cur)}</b><span>сейчас · прогноз <b style="font-size:16px">${r.total}</b> · цель ${st.target}</span></div>
+      <div class="bar"><i class="f" style="width:${pc(r.total)}%"></i><i class="c" style="width:${pc(num(st.cur))}%"></i><span class="t" style="left:${pc(st.target)}%"></span></div>
+      <div class="row"><span class="pill p-${cls}">${r.g[0]}</span><span>${r.need>0?`не хватает <b>${r.need}</b>`:`запас <b>${-r.need}</b>`}</span></div>
+      <div class="row"><span>Пропусков <b>${r.abs}</b> из ${maxAbs(s,st.target)} допустимых</span><span>осталось занятий <b>${r.L}</b> из ${s.dates.length}</span></div>
+      ${r.ev?`<div class="row"><span>с мероприятиями из прогноза: +${r.ev}</span></div>`:""}
+      ${r.needAll>0?`<p class="hint">Даже при полном посещении нужно ещё ${r.needAll} за оценки или мероприятия.</p>`:""}`
+      :`<p class="hint">Выберите себя вверху или впишите баллы в настройках.</p>`}
+      <details class="cfg"${has?"":" open"}><summary>Настроить прогноз</summary><div class="grid">
+        <label>Баллы сейчас<input data-k="cur" type="number" value="${st.cur}"></label>
+        <label>Пропусков<input data-k="abs" type="number" min="0" value="${st.abs}"></label>
+        <label>Буду очно, из ${r.L}<input data-k="off" type="number" min="0" max="${r.L}" value="${r.off}"></label>
+        <label>Буду онлайн<input data-k="on" type="number" min="0" value="${r.on}"></label>
+        <label>За оценки сверху<input data-k="bonus" type="number" min="0" value="${st.bonus}"></label>
+        <label>Цель<select data-k="target">${(s.exam?[[120,"Отлично"],[110,"Хорошо"],[100,"Удовл."],[70,"Допуск"]]:[[100,"Зачёт"],[70,"Допуск"]]).map(([v,t])=>`<option value="${v}"${v==st.target?" selected":""}>${t}: ${v}</option>`).join("")}</select></label>
+      </div></details>`;
+    el.querySelectorAll("[data-k]").forEach(inp=>inp.addEventListener("change",()=>{const k=inp.dataset.k;st[k]=k==="cur"?inp.value:+inp.value;save();const open=el.querySelector("details").open;tiles();box.children[SUBJ.indexOf(s)].querySelector("details").open=open}));
+    box.appendChild(el)});
+}
+
+/* ---------- данные из таблицы ---------- */
+let SUM=null,NOTES={},SHEETS={};
+async function loadSum(){if(SUM)return SUM;const rows=await getCSV(URL_SUM);const head=rows[0].map(norm);
+  const kind=x=>x.includes("пропуск")?"a":x.includes("примеч")?"n":"s";
+  const ix=(key,k)=>head.findIndex(x=>x.startsWith(norm(key))&&kind(x)===k);
+  const drow=rows.find(r=>norm(r[0])==="дата");
+  SUM={rows:rows.slice(1).filter(r=>r!==drow),ix,date:i=>drow?drow[i]:(rows[0][i]||"")};return SUM}
+async function loadWho(name,quiet){
+  if(!name)return;const key=norm(name);
+  try{const T=await loadSum();const row=T.rows.find(r=>norm(r[0])===key);
+    if(!row){$("status").textContent="Вашей строки нет в таблице баллов. Можно вписать баллы вручную в «Настроить прогноз».";return}
+    const dates=[];
+    SUBJ.forEach(s=>{const st=S.subj[s.id],k=s.sheet,i=T.ix(k,"s"),a=T.ix(k,"a"),n=T.ix(k,"n");
+      if(i>=0&&row[i]!=="")st.cur=String(num(row[i])??"");if(a>=0&&row[a]!=="")st.abs=num(row[a])||0;
+      const d=toISO(T.date(i));if(d){st.asof=d;dates.push(ddmm(d))}st.off=null;NOTES[s.id]=n>=0?row[n]:""});
+    save();tiles();$("status").textContent="Баллы из журнала"+(dates.length?" на "+[...new Set(dates)].join(", "):"")+".";
+  }catch(e){$("status").textContent="Не удалось загрузить таблицу ("+(LASTERR||e.message)+"). Проверьте интернет или впишите баллы вручную."}
+  loadApps(name);loadDays(name);
+}
+
+/* ---------- По дням ---------- */
+async function loadSheet(s){if(SHEETS[s.id])return SHEETS[s.id];
+  const rows=await getCSV(URL_SHEET(s.sheet));
+  let hi=rows.findIndex(r=>r.some(c=>norm(c)==="фио"));
+  let head=hi>=0?rows[hi]:rows[0];if(hi<0)hi=0;
+  const cols=head.map((h,j)=>({j,date:toISO(h),label:h,dop:/^доп/i.test(h)||/доп$/i.test(h),total:/итого/i.test(h)}));
+  return SHEETS[s.id]={rows:rows.slice(hi+1),cols,nameCol:head.findIndex(c=>norm(c).includes("фио"))};}
+async function loadDays(name){
+  const box=$("daysbox");if(!name){box.innerHTML='<div class="empty">Выберите себя вверху, чтобы увидеть свои баллы по дням.</div>';return}
+  box.innerHTML='<div class="empty">Загружаю журнал…</div>';
+  const key=norm(name),byDate={},extra={},totals={};let ok=0;
+  for(const s of SUBJ){try{const T=await loadSheet(s);const nc=T.nameCol>=0?T.nameCol:1;
+      const row=T.rows.find(r=>norm(r[nc])===key);if(!row)continue;ok++;
+      const held=c=>T.rows.some(r=>NAMES.some(n=>norm(n)===norm(r[nc]))&&(r[c.j]||"")!=="");
+      T.cols.forEach(c=>{const v=row[c.j]||"";
+        if(c.date){const k=c.date;(byDate[k]=byDate[k]||{})[s.id]=(byDate[k][s.id]||[]).concat([{v,held:held(c)}])}
+        else if(c.total)totals[s.id]=v;
+        else if(c.j>nc&&!c.total&&/(доп|ср|заруб|рп)/i.test(c.label)&&v!=="")extra[s.id]=(extra[s.id]||0)+(num(v)||0)});
+    }catch(e){}}
+  if(!ok){box.innerHTML='<div class="empty">Листы по предметам пока не подключены или вашей строки там нет.</div>';return}
+  const today=iso(new Date());
+  const cell=x=>{if(!x)return"";return x.map(o=>{if(!o.held&&o.v==="")return'<span class="c fut" title="впереди"></span>';if(o.v===""||norm(o.v)==="н")return'<span class="c miss">н</span>';const n=num(o.v);return`<span class="c ${n===3?"on":n!=null&&n<5?"on":"ok"}">${$("cumul").checked?o.cum:o.v}</span>`}).join(" ")};
+  const dates=Object.keys(byDate).sort();
+  const cum=$("cumul").checked,run={};
+  if(cum){dates.forEach(d=>SUBJ.forEach(s=>{const x=byDate[d][s.id];if(!x)return;x.forEach(o=>{const n=num(o.v);if(o.held&&n!=null)run[s.id]=(run[s.id]||0)+n;o.cum=run[s.id]||0})}))}
+  let h='<div class="tablewrap"><table class="days"><thead><tr><th>Дата</th>'+SUBJ.map(s=>`<th>${s.sheet}</th>`).join("")+"</tr></thead><tbody>";
+  let mark=false;
+  dates.forEach(d=>{const wd=["вс","пн","вт","ср","чт","пт","сб"][new Date(d+"T12:00").getDay()];const t=!mark&&d>=today;if(t)mark=true;
+    h+=`<tr${t?' class="today"':""}><td>${ddmm(d)} <span style="color:var(--faint)">${wd}</span></td>`+SUBJ.map(s=>`<td>${cell(byDate[d][s.id])}</td>`).join("")+"</tr>"});
+  h+='<tr><td>Доп. и задания</td>'+SUBJ.map(s=>`<td>${extra[s.id]?`<span class="c plus">+${extra[s.id]}</span>`:""}</td>`).join("")+"</tr>";
+  h+='<tr class="sum"><td>Итого</td>'+SUBJ.map(s=>`<td>${totals[s.id]??""}</td>`).join("")+"</tr></tbody></table></div>";
+  box.innerHTML=h;
+}
+
+$("cumul").addEventListener("change",()=>loadDays(S.who));
+/* ---------- Мероприятия ---------- */
+const subjOf=t=>{t=(t||"").toUpperCase();return t.includes("ПРОИ")?"proi":t.includes("ПВДИ")?"pvdi":t.includes("АПИП")?"apip":t.includes("ФИЛ")?"fp":null};
+function estimate(name,role,info){const r=norm(role),x=norm((info||"")+" "+(name||""));
+  if(/ошибка/.test(r)||/^ошибка$/.test(norm(name))){const m=/разница\s*([+-]?\d+)/i.exec(info||"");const d=m?+m[1]:0;return{p:Math.max(0,d),t:"исправление журнала"}}
+  const online=/онлайн|вебинар|дистанц|http|zoom|edpc/.test(x)&&!/очно/.test(x),part=online?3:5,parts=[];let p;
+  if(/доклад/.test(r)){p=part+5;parts.push("доклад")}else if(/организ|админ|оргкомитет/.test(r)){p=2;parts.push("оргкомитет")}else{p=part}
+  parts.unshift(online?"онлайн":"очно");if(/выезд/.test(x)){p+=5;parts.push("выезд")}if(/публикац|статья/.test(x)){p+=10;parts.push("публикация")}
+  return{p,t:parts.join(", ")}}
+const STOP=new Set(["конференция","вебинар","мероприятие","форум","лекция","семинар","online","онлайн","день","2026","российской","федерации","ведение"]);
+function inJournal(sid,date,name,status){return matchNote(NOTES[sid],date,name,status)}
+function matchNote(noteRaw,date,name,status){const st=norm(status);
+  if(/^(да|зачт|учт)/.test(st))return true;if(/^(нет|не )/.test(st))return false;
+  const note=norm(noteRaw);if(!note)return false;
+  const dm=/^(\d{1,2})\.(\d{1,2})/.exec(date||"");if(dm&&note.includes(dm[1].padStart(2,"0")+"."+dm[2].padStart(2,"0")))return true;
+  return norm(name).replace(/https?:\S+/g," ").split(/[^a-zа-я0-9]+/).filter(w=>w.length>=4&&!STOP.has(w)).some(w=>note.includes(w.slice(0,Math.max(4,w.length-2))))}
+let APPS=[],CAN_EDIT=false;
+const URL_EDIT=BASE+"&headers=1&sheet="+encodeURIComponent("Заявки");
+async function appRows(){
+  try{const rows=await getCSV(URL_EDIT),h=rows[0].map(norm);
+    if(h[0]&&h[0].startsWith("отметка")&&h.some(x=>x.startsWith("скрыть"))){CAN_EDIT=true;
+      return rows.slice(1).filter(r=>r[1]&&!/^да/.test(norm(r[9]))).map(r=>({ts:r[0],name:r[1],date:r[2],title:r[3],role:r[4],info:r[5],subjRaw:r[7],status:r[8]}))}}catch(e){}
+  CAN_EDIT=false;
+  return (await getCSV(URL_APPS)).slice(1).map(([name,date,title,role,info,subjRaw,status])=>({name,date,title,role,info,subjRaw,status}))}
+// не показывать: мероприятия, которые засчитываются кафедрой иначе (Лекторий-Фест, ИИ-аватары), и тестовые строки
+const EXCLUDE=/лектори|аватар|^\s*тест\s*$/i;
+async function loadApps(name){
+  const ul=$("apps");if(!name){ul.innerHTML='<li><span class="hint">Выберите себя вверху.</span></li>';$("addall").hidden=true;return}
+  try{const rows=await appRows();const key=norm(name);
+    APPS=rows.filter(r=>norm(r.name)===key&&!EXCLUDE.test(r.title||"")).map(r=>{const {date,title,role,info,status}=r,sid=subjOf(r.subjRaw),e=estimate(title,role,info),label=`${date}, ${title}`;
+      return{...r,sid,e,label,counted:!!sid&&inJournal(sid,date,title,status)}});
+    let changed=false;APPS.filter(a=>a.counted).forEach(a=>{const k=S.events.findIndex(v=>v.form===a.label);if(k>=0){S.events.splice(k,1);changed=true}});if(changed){save();tiles()}
+    renderApps();
+  }catch(e){ul.innerHTML='<li><span class="hint">Не удалось загрузить заявки.</span></li>'}}
+function renderApps(){const ul=$("apps");ul.innerHTML="";let pend=0;
+  const manual=S.events.filter(e=>!e.form);
+  if(!APPS.length&&!manual.length){ul.innerHTML='<li><span class="hint">Заявок пока нет. Подать можно во вкладке «Подать заявку».</span></li>'}
+  APPS.forEach(a=>{const added=S.events.some(v=>v.form===a.label);if(!a.counted&&!added&&a.sid)pend++;
+    const li=document.createElement("li");const sname=a.sid?SUBJ.find(s=>s.id===a.sid).sheet:"предмет?";
+    li.innerHTML=`<div class="t"><div></div><small>${sname} · ${a.date} · ${a.e.t}</small></div><div class="r"></div>`;
+    li.querySelector(".t div").textContent=a.title.replace(/\s*https?:\S+/g,"")||a.title;
+    const r=li.querySelector(".r");
+    if(CAN_EDIT&&a.ts&&!/^да/.test(norm(a.status))){const eb=document.createElement("button");eb.type="button";eb.className="btn sm ghost";eb.textContent="Изменить";eb.onclick=()=>openEdit(li,a);r.appendChild(eb)}
+    if(a.counted)r.insertAdjacentHTML("beforeend",'<span class="pill p-ok">в журнале</span>');
+    else{r.insertAdjacentHTML("beforeend",`<b>+${a.e.p}</b>`);const b=document.createElement("button");b.type="button";b.className="btn sm "+(added?"ghost":"");b.textContent=added?"В прогнозе ✓":"В прогноз";b.disabled=!a.sid;
+      b.onclick=()=>{const k=S.events.findIndex(v=>v.form===a.label);if(k>=0)S.events.splice(k,1);else S.events.push({n:a.label,s:a.sid,p:a.e.p,form:a.label});save();tiles();renderApps()};r.appendChild(b)}
+    ul.appendChild(li)});
+  manual.forEach(e=>{const li=document.createElement("li");li.innerHTML=`<div class="t"><div></div><small>${SUBJ.find(s=>s.id===e.s).sheet} · добавлено вручную</small></div><div class="r"><b>+${e.p}</b><button class="btn sm ghost" type="button">Убрать</button></div>`;
+    li.querySelector(".t div").textContent=e.n;li.querySelector("button").onclick=()=>{S.events.splice(S.events.indexOf(e),1);save();tiles();renderApps()};ul.appendChild(li)});
+  const all=$("addall");all.hidden=!pend;all.textContent=`Все незачтённые в прогноз (${pend})`;
+  all.onclick=()=>{APPS.forEach(a=>{if(a.sid&&!a.counted&&!S.events.some(v=>v.form===a.label))S.events.push({n:a.label,s:a.sid,p:a.e.p,form:a.label})});save();tiles();renderApps()};
+}
+function openEdit(li,a){if(li.querySelector(".edit"))return;li.classList.add("ed");
+  const f=document.createElement("div");f.className="edit";
+  f.innerHTML=`<label>Предмет<select class="e-subj">${$("sf-subj").innerHTML}</select></label>
+    <label class="wide">Название мероприятия<input class="e-title" type="text"></label>
+    <label class="wide">Доп. информация<textarea class="e-info" rows="2"></textarea></label>
+    <label class="chk"><input type="checkbox" class="e-hide"> Скрыть заявку (удалить из списка)</label>
+    <div class="act"><button type="button" class="btn sm e-save">Сохранить</button><button type="button" class="btn sm ghost e-cancel">Отмена</button><span class="hint e-st"></span></div>`;
+  li.appendChild(f);const sel=f.querySelector(".e-subj");
+  const opt=[...sel.options].find(o=>o.value&&(o.value===a.subjRaw||subjOf(o.value)===a.sid));if(opt)sel.value=opt.value;
+  f.querySelector(".e-title").value=a.title||"";f.querySelector(".e-info").value=a.info||"";
+  f.querySelector(".e-cancel").onclick=()=>{f.remove();li.classList.remove("ed")};
+  f.querySelector(".e-save").onclick=async()=>{const st=f.querySelector(".e-st"),btn=f.querySelector(".e-save");
+    const set={subj:sel.value,title:f.querySelector(".e-title").value.trim(),info:f.querySelector(".e-info").value.trim(),hide:f.querySelector(".e-hide").checked};
+    if(!set.title&&!set.hide){st.textContent="Название не может быть пустым.";return}
+    btn.disabled=true;st.textContent="Сохраняю…";
+    try{const r=await fetch(UPLOAD_URL,{method:"POST",body:JSON.stringify({action:"edit",ts:a.ts,name:a.name,old:a.title,set})});const j=await r.json();if(!j.ok)throw new Error(j.error||"edit");
+      const k=S.events.findIndex(v=>v.form===a.label);if(k>=0){S.events.splice(k,1);save();tiles()}
+      st.textContent="Сохранено. Обновляю список…";setTimeout(()=>loadApps(S.who),2500)}
+    catch(e){st.textContent="Не сохранилось: "+(e.message||e);btn.disabled=false}}}
+SUBJ.forEach(s=>$("c-subj").insertAdjacentHTML("beforeend",`<option value="${s.id}">${s.sheet}</option>`));
+const cTot=()=>["c-part","c-talk","c-extra","c-dipl","c-other"].reduce((a,id)=>a+(+$(id).value),0);
+["c-part","c-talk","c-extra","c-dipl","c-other"].forEach(id=>$(id).addEventListener("change",()=>$("c-total").textContent=cTot()));
+$("c-add").onclick=()=>{const t=cTot();if(!t)return;S.events.push({n:"Мероприятие, посчитано вручную",s:$("c-subj").value,p:t});save();tiles();renderApps()};
+
+/* ---------- Подать заявку ---------- */
+NAMES.forEach(n=>{$("who").insertAdjacentHTML("beforeend",`<option>${n}</option>`);$("sf-name").insertAdjacentHTML("beforeend",`<option>${n}</option>`)});
+let MODE="event";
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{MODE=b.dataset.mode;document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll("[data-for]").forEach(f=>f.hidden=f.dataset.for!==MODE);sfCalc()});
+$("sf-role").onchange=()=>{$("sf-role-other-l").hidden=$("sf-role").value!=="other";sfCalc()};
+["sf-format","sf-pres","sf-trip","sf-pub","sf-dipl","sf-have","sf-want","sf-role-other"].forEach(id=>$(id).addEventListener("input",sfCalc));
+function sfCalc(){if(MODE==="error"){const d=(+$("sf-want").value||0)-(+$("sf-have").value||0);$("sf-points").textContent=(d>0?"+":"")+d;$("sf-pnote").textContent="разница";return}
+  const on=$("sf-format").value==="Онлайн",role=norm($("sf-role").value==="other"?$("sf-role-other").value:$("sf-role").value);
+  let p=/организ|админ|оргкомитет/.test(role)?2:(on?3:5);if(/доклад/.test(role))p+=5;if($("sf-trip").checked)p+=5;if($("sf-pub").checked)p+=10;if($("sf-dipl").checked)p+=2;
+  $("sf-points").textContent=p;$("sf-pnote").textContent="баллов примерно"}
+if(UPLOAD_URL){$("sf-filerow").hidden=false}
+$("sf-file").addEventListener("change",e=>{const f=e.target.files[0];if(f&&f.size>15*1024*1024){e.target.value="";$("sf-fname").textContent="Больше 15 МБ, выберите поменьше";return}
+  $("sf-fname").textContent=f?f.name:"фото или PDF до 15 МБ";$("sf-fclear").hidden=!f});
+$("sf-fclear").onclick=()=>{$("sf-file").value="";$("sf-file").dispatchEvent(new Event("change"))};
+function shrink(file){return new Promise(res=>{if(!/^image\//.test(file.type)||file.size<1.5*1024*1024||/gif|svg/.test(file.type))return res(file);
+  const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const k=Math.min(1,2000/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>res(b?new File([b],file.name.replace(/\.\w+$/,"")+".jpg",{type:"image/jpeg"}):file),"image/jpeg",0.85)};img.onerror=()=>res(file);img.src=u})}
+const b64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(blob)});
+async function uploadProof(meta){const f0=$("sf-file").files[0];if(!f0||!UPLOAD_URL)return null;const f=await shrink(f0);
+  const r=await fetch(UPLOAD_URL,{method:"POST",body:JSON.stringify({file:await b64(f),type:f.type,name:f.name,...meta})});const j=await r.json();if(!j.ok)throw new Error(j.error||"upload");return j.url}
+function extraText(){if(MODE==="error"){const h=$("sf-have").value,w=$("sf-want").value,d=(+w||0)-(+h||0);return[`В журнале ${h||"?"}, должно быть ${w||"?"}`+(h&&w?`, разница ${d>0?"+":""}${d}`:""),$("sf-ewhat").value.trim(),$("sf-extra").value.trim()].filter(Boolean).join(". ")}
+  const f=[$("sf-format").value];[["pres","презентация"],["trip","выезд"],["pub","публикация статьи"],["dipl","диплом или грамота"]].forEach(([k,t])=>{if($("sf-"+k).checked)f.push(t)});return[f.join(" + "),$("sf-extra").value.trim()].filter(Boolean).join(". ")}
+$("sf").addEventListener("submit",async ev=>{ev.preventDefault();document.querySelectorAll("#sf .err").forEach(x=>x.classList.remove("err"));
+  const need=["sf-name","sf-subj"].concat(MODE==="event"?["sf-title","sf-date"]:["sf-edate","sf-have","sf-want"]);if(MODE==="event"&&$("sf-role").value==="other")need.push("sf-role-other");
+  const bad=need.filter(id=>!$(id).value.trim());const hasFile=!!$("sf-file").files[0]&&!!UPLOAD_URL;
+  if(MODE==="event"&&!hasFile&&!$("sf-proof").value.trim())bad.push("sf-proofbox");
+  if(bad.length){bad.forEach(id=>$(id).classList.add("err"));$("sf-status").textContent=bad.includes("sf-proofbox")?"Прикрепите файл или ссылку и заполните поля, отмеченные красным.":"Заполните поля, отмеченные красным.";return}
+  const date=MODE==="event"?$("sf-date").value:$("sf-edate").value,[y,m,d]=date.split("-");const fd=new URLSearchParams();
+  fd.append(`entry.${ENTRY.name}`,$("sf-name").value);fd.append(`entry.${ENTRY.title}`,MODE==="error"?"ОШИБКА":$("sf-title").value.trim());
+  fd.append(`entry.${ENTRY.date}_year`,y);fd.append(`entry.${ENTRY.date}_month`,String(+m));fd.append(`entry.${ENTRY.date}_day`,String(+d));
+  if(MODE==="error")fd.append(`entry.${ENTRY.role}`,"ОШИБКА В КОЛИЧЕСТВЕ БАЛЛОВ");else if($("sf-role").value==="other"){fd.append(`entry.${ENTRY.role}`,"__other_option__");fd.append(`entry.${ENTRY.role}.other_option_response`,$("sf-role-other").value.trim())}else fd.append(`entry.${ENTRY.role}`,$("sf-role").value);
+  fd.append(`entry.${ENTRY.extra}`,extraText());fd.append(`entry.${ENTRY.proof}`,$("sf-proof").value.trim()||"нет");fd.append(`entry.${ENTRY.subj}`,$("sf-subj").value);
+  $("sf-send").disabled=true;
+  if(hasFile){$("sf-status").textContent="Загружаю файл…";try{const url=await uploadProof({who:$("sf-name").value,date,title:MODE==="error"?"ОШИБКА":$("sf-title").value.trim()});const l=$("sf-proof").value.trim();fd.set(`entry.${ENTRY.proof}`,l?url+" ; "+l:url)}
+    catch(e){$("sf-status").textContent="Файл не загрузился. Попробуйте ещё раз или вставьте ссылку.";$("sf-send").disabled=false;return}}
+  $("sf-status").textContent="Отправляю…";
+  try{await fetch(GFORM+"/formResponse",{method:"POST",mode:"no-cors",body:fd});
+    $("sf-status").textContent="Готово. Заявка появится во вкладке «Мероприятия» через несколько минут.";
+    ["sf-title","sf-date","sf-proof","sf-extra","sf-edate","sf-have","sf-want","sf-ewhat","sf-role-other"].forEach(id=>$(id).value="");["sf-pres","sf-trip","sf-pub","sf-dipl"].forEach(id=>$(id).checked=false);$("sf-fclear").click();sfCalc();
+    if(S.who)setTimeout(()=>loadApps(S.who),60000)}
+  catch(e){$("sf-status").textContent="Не удалось отправить. Проверьте интернет."}
+  $("sf-send").disabled=false});
+
+/* ---------- Отчёт для преподавателя ---------- */
+NAMES.forEach(n=>$("r-who").insertAdjacentHTML("beforeend",`<label><input type="checkbox" class="r-st" value="${n}" checked> ${n}</label>`));
+const setWho=f=>document.querySelectorAll(".r-st").forEach(c=>c.checked=f(c.value));
+$("r-all").onclick=()=>setWho(()=>true);$("r-none").onclick=()=>setWho(()=>false);$("r-me").onclick=()=>setWho(v=>v===S.who);
+$("r-has").onclick=async()=>{$("r-status").textContent="Смотрю заявки…";try{const rows=await getCSV(URL_APPS);const set=new Set(rows.slice(1).filter(r=>!EXCLUDE.test(r[2]||"")).map(r=>norm(r[0])));setWho(v=>set.has(norm(v)));$("r-status").textContent=""}catch(e){$("r-status").textContent="Не удалось загрузить заявки."}};
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtD=d=>d?d.slice(8,10)+"."+d.slice(5,7)+"."+d.slice(0,4):"";
+$("r-make").onclick=async()=>{
+  const subs=SUBJ.filter(s=>[...document.querySelectorAll(".r-subj:checked")].some(c=>c.value===s.id));
+  const who=[...document.querySelectorAll(".r-st:checked")].map(c=>c.value);
+  if(!subs.length||!who.length){$("r-status").textContent="Выберите хотя бы один предмет и одного студента.";return}
+  $("r-status").textContent="Собираю данные…";$("r-make").disabled=true;
+  try{
+    const T=await loadSum();const appsRows=(await appRows()).filter(r=>!EXCLUDE.test(r.title||""));
+    const opt=id=>$(id).checked;const asof={};
+    const data=who.map(name=>{const key=norm(name),row=T.rows.find(r=>norm(r[0])===key)||[];
+      const notes={},res={};SUBJ.forEach(s=>{const n=T.ix(s.sheet,"n");notes[s.id]=n>=0?row[n]||"":""});
+      const seen=new Set();
+      const apps=appsRows.filter(r=>norm(r.name)===key).map(({date,title,role,info,subjRaw:subj,status})=>{
+        const sid=subjOf(subj),isErr=/ошибка/i.test(role||"")||/^\s*ошибка\s*$/i.test(title||""),e=estimate(title,role,info);
+        const k=norm(title)+"|"+sid+"|"+date,dup=seen.has(k);seen.add(k);
+        const counted=sid&&matchNote(notes[sid],date,title,status);
+        const other=!counted&&!isErr?SUBJ.find(s=>s.id!==sid&&matchNote(notes[s.id],"",title,"")):null;
+        return{date,title:String(title||"").replace(/\s*https?:\S+/g,"").trim()||title,role,info,sid,isErr,p:e.p,how:e.t,counted,dup,other}});
+      subs.forEach(s=>{const i=T.ix(s.sheet,"s"),a=T.ix(s.sheet,"a");const cur=num(row[i]),abs=num(row[a])||0;const d=toISO(T.date(i));if(d)asof[s.id]=d;
+        const L=s.dates.filter(x=>x>(d||"")).length;
+        const mine=apps.filter(x=>x.sid===s.id);const pend=mine.filter(x=>!x.counted&&!x.dup&&!x.other).reduce((t,x)=>t+x.p,0);
+        const total=(cur||0)+L*5+pend;res[s.id]={cur,abs,L,pend,total,g:grade(s,total,abs),mine}});
+      return{name,res}});
+    const today=new Date(),ymd=String(today.getFullYear()).slice(2)+String(today.getMonth()+1).padStart(2,"0")+String(today.getDate()).padStart(2,"0");
+    const gcls=g=>g[1]==="ok"?"ok":g[1]==="warn"?"warn":"bad";
+    let h=`<h1>Баллы БРС и заявки на учёт мероприятий</h1><p class="sub">Группа 104 КПИБ, ВШГА МГУ · ${esc($("r-to").value)?"Кому: "+esc($("r-to").value)+" · ":""}${esc($("r-from").value)?"От: "+esc($("r-from").value)+" · ":""}сформировано ${today.toLocaleDateString("ru-RU")} · журнал на ${subs.map(s=>s.sheet+" "+fmtD(asof[s.id]).slice(0,5)).join(", ")}</p>`;
+    if(opt("r-sum")){h+=`<table><thead><tr><th>Студент</th>${subs.map(s=>`<th class="n">${s.sheet}<br><span class="muted">журнал / к учёту${opt("r-fc")?" / прогноз":""}</span></th>`).join("")}</tr></thead><tbody>`;
+      data.forEach(d=>{h+=`<tr><td class="nm">${esc(d.name)}</td>${subs.map(s=>{const r=d.res[s.id];return`<td class="n">${r.cur??"нет"} / ${r.pend?"+"+r.pend:"0"}${opt("r-fc")?` / <span class="${gcls(r.g)}">${r.total}</span>`:""}</td>`}).join("")}</tr>`});h+="</tbody></table>"}
+    data.forEach((d,ix)=>{h+=`<div class="st${opt("r-pb")||(ix===0&&opt("r-sum"))?" pb":""}"><h2>${esc(d.name)}</h2>`;
+      h+=`<table><thead><tr><th>Предмет</th><th class="n">Баллы в журнале</th><th class="n">Пропуски</th><th class="n">Заявки к учёту</th>${opt("r-fc")?'<th class="n">Осталось занятий</th><th class="n">Прогноз</th><th>Оценка</th>':""}</tr></thead><tbody>`;
+      subs.forEach(s=>{const r=d.res[s.id];h+=`<tr><td>${s.name}</td><td class="n">${r.cur??"нет данных"}</td><td class="n">${r.abs}</td><td class="n">${r.pend?"+"+r.pend:"нет"}</td>${opt("r-fc")?`<td class="n">${r.L}</td><td class="n">${r.total}</td><td class="${gcls(r.g)}">${r.g[0]}</td>`:""}</tr>`});
+      h+="</tbody></table>";
+      const rowsA=[],rowsE=[];
+      subs.forEach(s=>d.res[s.id].mine.forEach(a=>{
+        if(a.isErr){if(opt("r-err"))rowsE.push(`<tr><td>${s.sheet}</td><td class="n">${esc(a.date)}</td><td>${esc(a.info||"без пояснения")}</td><td class="n">${a.p?"+"+a.p:"уточнить"}</td></tr>`);return}
+        const st=a.counted?'<span class="ok">уже в журнале</span>':a.dup?'<span class="muted">повтор заявки</span>':a.other?`<span class="warn">возможно, уже учтено в ${a.other.sheet}</span>`:"к учёту";
+        if(a.counted&&!opt("r-done"))return;if(!opt("r-apps")&&!a.counted)return;
+        rowsA.push(`<tr><td>${s.sheet}</td><td class="n">${esc(a.date)}</td><td>${esc(a.title)}</td><td>${esc(a.role)}${a.how?`<br><span class="muted">${esc(a.how)}</span>`:""}</td><td class="n">${a.counted||a.dup||a.other?"":"+"+a.p}</td><td>${st}</td></tr>`)}));
+      if(rowsA.length)h+=`<table><thead><tr><th>Предмет</th><th class="n">Дата</th><th>Мероприятие</th><th>Роль, формат</th><th class="n">Баллы</th><th>Статус</th></tr></thead><tbody>${rowsA.join("")}</tbody></table>`;
+      if(rowsE.length)h+=`<table><thead><tr><th>Предмет</th><th class="n">Дата</th><th>Исправление в журнале</th><th class="n">Разница</th></tr></thead><tbody>${rowsE.join("")}</tbody></table>`;
+      if(!rowsA.length&&!rowsE.length&&(opt("r-apps")||opt("r-err")))h+='<p class="muted">Заявок к учёту нет.</p>';
+      h+="</div>"});
+    h+=`<p class="note">Баллы журнала взяты из таблицы группы. Баллы за заявки посчитаны ориентировочно по шкале БРС кафедры: очно 5, онлайн 3, доклад и выезд по 5, публикация 10, оргкомитет 2. Прогноз: баллы журнала, заявки к учёту и 5 баллов за каждое оставшееся занятие по расписанию при очном посещении. Заявки «уже в журнале» определены по примечаниям в журнале.</p><div class="sign"><span>${today.toLocaleDateString("ru-RU")}</span><span>${esc($("r-from").value)} ____________</span></div>`;
+    $("report").innerHTML=h;
+    const old=document.title;document.title="БРС="+(who.length===1?who[0].split(" ")[0]:"104КПИБ")+"="+ymd;
+    $("r-status").textContent="Готово. В окне печати выберите «Сохранить как PDF».";
+    setTimeout(()=>{window.print();setTimeout(()=>{document.title=old},500)},100);
+  }catch(e){$("r-status").textContent="Не удалось собрать отчёт: "+(LASTERR||e.message)}
+  $("r-make").disabled=false};
+
+/* ---------- навигация и старт ---------- */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll("section[id^=t-]").forEach(s=>s.hidden=s.id!=="t-"+b.dataset.tab);try{localStorage.setItem(KEY+"-tab",b.dataset.tab)}catch(e){}});
+try{const t=localStorage.getItem(KEY+"-tab");if(t)document.querySelector(`nav button[data-tab="${t}"]`)?.click()}catch(e){}
+$("who").onchange=()=>{const n=$("who").value;S=Object.assign(blank(),{who:n,events:S.who===n?S.events:[]});$("sf-name").value=n;save();tiles();if(n)loadWho(n);else{$("status").textContent="";loadApps("");loadDays("")}};
+$("reset").onclick=()=>{S=blank();save();$("who").value="";$("sf-name").value="";$("status").textContent="";tiles();loadApps("");loadDays("")};
+sfCalc();tiles();
+if(S.who){$("who").value=S.who;$("sf-name").value=S.who;loadWho(S.who,true)}else{loadApps("");loadDays("")}
+loadSchedule().then(()=>tiles());
+</script>
+</body>
+</html>
