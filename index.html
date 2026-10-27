@@ -502,7 +502,7 @@ function shrink(file){return new Promise(res=>{if(!/^image\//.test(file.type)||f
   c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>res(b?new File([b],file.name.replace(/\.\w+$/,"")+".jpg",{type:"image/jpeg"}):file),"image/jpeg",0.85)};img.onerror=()=>res(file);img.src=u})}
 const b64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(blob)});
 async function uploadProof(meta,file){const f0=file||$("sf-file").files[0];if(!f0||!UPLOAD_URL)return null;const f=await shrink(f0);
-  const r=await fetch(UPLOAD_URL,{method:"POST",body:JSON.stringify({file:await b64(f),type:f.type,name:f.name,...meta})});const j=await r.json();if(!j.ok)throw new Error(j.error||"upload");return j.url}
+  const r=await fetch(UPLOAD_URL,{method:"POST",body:JSON.stringify({file:await b64(f),type:f.type||"image/jpeg",name:f.name,...meta})});let j;try{j=await r.json()}catch(x){throw new Error("скрипт ответил не JSON, код "+r.status+": проверьте развертывание")}if(!j.ok)throw new Error(j.error||"upload");return j.url}
 function extraText(){if(MODE==="error"){const h=$("sf-have").value,w=$("sf-want").value,d=(+w||0)-(+h||0);return[`В журнале ${h||"?"}, должно быть ${w||"?"}`+(h&&w?`, разница ${d>0?"+":""}${d}`:""),$("sf-ewhat").value.trim(),$("sf-extra").value.trim()].filter(Boolean).join(". ")}
   const f=[$("sf-format").value];[["pres","презентация"],["trip","выезд"],["pub","публикация статьи"],["dipl","диплом или грамота"]].forEach(([k,t])=>{if($("sf-"+k).checked)f.push(t)});return[f.join(" + "),$("sf-extra").value.trim()].filter(Boolean).join(". ")}
 $("sf").addEventListener("submit",async ev=>{ev.preventDefault();document.querySelectorAll("#sf .err").forEach(x=>x.classList.remove("err"));
@@ -517,7 +517,7 @@ $("sf").addEventListener("submit",async ev=>{ev.preventDefault();document.queryS
   fd.append(`entry.${ENTRY.extra}`,extraText());const proofTxt=[inMax?"Фото в Максе":"",$("sf-proof").value.trim()].filter(Boolean).join(" ; ");fd.append(`entry.${ENTRY.proof}`,proofTxt||"нет");fd.append(`entry.${ENTRY.subj}`,$("sf-subj").value);
   $("sf-send").disabled=true;
   if(hasFile){$("sf-status").textContent="Загружаю файл…";try{const url=await uploadProof({who:$("sf-name").value,date,title:MODE==="error"?"ОШИБКА":$("sf-title").value.trim()});fd.set(`entry.${ENTRY.proof}`,proofTxt?url+" ; "+proofTxt:url)}
-    catch(e){$("sf-status").textContent="Файл не загрузился. Попробуйте ещё раз или вставьте ссылку.";$("sf-send").disabled=false;return}}
+    catch(e){$("sf-status").textContent="Файл не загрузился ("+(e&&e.message||e)+"). Попробуйте ещё раз или вставьте ссылку.";$("sf-send").disabled=false;return}}
   $("sf-status").textContent="Отправляю…";
   try{await fetch(GFORM+"/formResponse",{method:"POST",mode:"no-cors",body:fd});
     $("sf-status").textContent="Готово. Заявка появится во вкладке «Мероприятия» через несколько минут.";
