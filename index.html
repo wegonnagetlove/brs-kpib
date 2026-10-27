@@ -62,7 +62,7 @@ table.days{border-collapse:collapse;width:100%;min-width:520px;font-variant-nume
 .list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:14px}
 .list li{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
 .list li:last-child{border-bottom:0}
-.list .t{min-width:0}.list .t div{font-weight:500;overflow-wrap:anywhere}.list .t small{color:var(--muted);font-size:12px}
+.list .t{min-width:0}.list .t div{font-weight:500;overflow-wrap:anywhere}.list .t small{color:var(--muted);font-size:12px}.list .t small a{color:var(--blue,#1a56c4);text-decoration:underline}
 .list .r{display:flex;align-items:center;gap:8px;flex:none}
 .list li.ed{flex-wrap:wrap}
 .edit{flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin-top:6px}
@@ -428,8 +428,11 @@ async function appRows(){
   return (await getCSV(URL_APPS)).slice(1).map(([name,date,title,role,info,subjRaw,status])=>({name,date,title,role,info,subjRaw,status}))}
 // не показывать: мероприятия, которые засчитываются кафедрой иначе (Лекторий-Фест, ИИ-аватары), и тестовые строки
 const EXCLUDE=/лектори|аватар|^\s*тест\s*$/i;
-function proofHTML(v){const t=String(v||"").trim();if(!t||/^нет$/i.test(t))return"";
-  return t.split(/\s*;\s*/).filter(Boolean).map(x=>/^https?:\/\//.test(x)?`<a href="${esc(x)}" target="_blank" rel="noopener">${/drive\.google/.test(x)?"файл на Диске":esc(x.replace(/^https?:\/\//,"").slice(0,40))}</a>`:esc(x)).join("<br>")}
+function linkify(v){const t=String(v||"").trim();if(!t)return"";
+  return t.split(/(https?:\/\/[^\s<>"]+)/g).map((x,i)=>{if(i%2===0)return esc(x);const u=x.replace(/[.,;:)»]+$/,""),tail=x.slice(u.length);
+    const lab=/drive\.google|docs\.google/.test(u)?"файл на Google Диске":/disk\.yandex|yadi\.sk/.test(u)?"файл на Яндекс Диске":u.replace(/^https?:\/\/(www\.)?/,"").slice(0,45)+(u.length>55?"…":"");
+    return`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(lab)}</a>${esc(tail)}`}).join("")}
+function proofHTML(v){const t=String(v||"").trim();if(!t||/^нет$/i.test(t))return"";return t.split(/\s*;\s*/).filter(Boolean).map(linkify).join("<br>")}
 async function loadApps(name){
   const ul=$("apps");if(!name){ul.innerHTML='<li><span class="hint">Выберите себя вверху.</span></li>';$("addall").hidden=true;return}
   try{const rows=await appRows();const key=norm(name);
@@ -445,6 +448,7 @@ function renderApps(){const ul=$("apps");ul.innerHTML="";let pend=0;
     const li=document.createElement("li");const sname=a.sid?SUBJ.find(s=>s.id===a.sid).sheet:"предмет?";
     li.innerHTML=`<div class="t"><div></div><small>${sname} · ${a.date} · ${a.e.t}</small></div><div class="r"></div>`;
     li.querySelector(".t div").textContent=a.title.replace(/\s*https?:\S+/g,"")||a.title;
+    const ph=proofHTML(a.proof);if(ph)li.querySelector(".t small").insertAdjacentHTML("beforeend",` · подтверждение: ${ph.replace(/<br>/g,", ")}`);
     const r=li.querySelector(".r");
     if(CAN_EDIT&&a.ts&&!/^да/.test(norm(a.status))){const eb=document.createElement("button");eb.type="button";eb.className="btn sm ghost";eb.textContent="Изменить";eb.onclick=()=>openEdit(li,a);r.appendChild(eb)}
     if(a.counted)r.insertAdjacentHTML("beforeend",'<span class="pill p-ok">в журнале</span>');
@@ -572,7 +576,7 @@ $("r-make").onclick=async()=>{
         if(a.isErr){if(opt("r-err"))rowsE.push(`<tr><td>${s.sheet}</td><td class="n">${esc(a.date)}</td><td>${esc(a.info||"без пояснения")}</td><td class="n">${a.p?"+"+a.p:"уточнить"}</td></tr>`);return}
         const st=a.counted?'<span class="ok">уже в журнале</span>':a.dup?'<span class="muted">повтор заявки</span>':a.other?`<span class="warn">возможно, уже учтено в ${a.other.sheet}</span>`:"к учёту";
         if(a.counted&&!opt("r-done"))return;if(!opt("r-apps")&&!a.counted)return;
-        rowsA.push(`<tr><td class="nm">${esc(d.name)}</td><td class="n">${esc(a.date)}</td><td>${esc(a.title)}</td><td class="nm">${esc(a.role)}</td><td>${esc(a.info||"")}</td><td class="lnk">${proofHTML(a.proof)}</td><td>${s.sheet}</td></tr>`)}));
+        rowsA.push(`<tr><td class="nm">${esc(d.name)}</td><td class="n">${esc(a.date)}</td><td>${esc(a.title)}</td><td class="nm">${esc(a.role)}</td><td>${linkify(a.info)}</td><td class="lnk">${proofHTML(a.proof)}</td><td>${s.sheet}</td></tr>`)}));
       if(rowsA.length)h+=`<table><thead><tr><th>ФИО</th><th class="n">Дата</th><th>Мероприятие</th><th>Роль</th><th>Доп. информация</th><th>Ссылка на подтверждение</th><th>Предмет</th></tr></thead><tbody>${rowsA.join("")}</tbody></table>`;
       if(rowsE.length)h+=`<table><thead><tr><th>Предмет</th><th class="n">Дата</th><th>Исправление в журнале</th><th class="n">Разница</th></tr></thead><tbody>${rowsE.join("")}</tbody></table>`;
       if(!rowsA.length&&!rowsE.length&&(opt("r-apps")||opt("r-err")))h+='<p class="muted">Заявок к учёту нет.</p>';
