@@ -193,7 +193,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
         <label>Роль<select id="sf-role"><option>Слушатель</option><option>Докладчик</option><option value="other">Другое</option></select></label>
         <label id="sf-role-other-l" hidden>Какая роль<input id="sf-role-other" type="text" placeholder="организатор, участник"></label>
         <label>Формат<select id="sf-format"><option>Очно</option><option>Онлайн</option></select></label>
-        <div class="wide chips"><label><input type="checkbox" id="sf-pres"> презентация</label><label><input type="checkbox" id="sf-trip"> выезд</label><label><input type="checkbox" id="sf-pub"> публикация</label><label><input type="checkbox" id="sf-dipl"> диплом</label></div>
+        <div class="wide chips"><label><input type="checkbox" id="sf-pres"> доклад</label><label><input type="checkbox" id="sf-trip"> выезд</label><label><input type="checkbox" id="sf-pub"> публикация</label><label><input type="checkbox" id="sf-dipl"> диплом</label></div>
       </div>
       <div class="f2" data-for="error" hidden>
         <label>Дата занятия<input id="sf-edate" type="date"></label>
@@ -407,7 +407,7 @@ const subjOf=t=>{t=(t||"").toUpperCase();return t.includes("ПРОИ")?"proi":t.
 function estimate(name,role,info){const r=norm(role),x=norm((info||"")+" "+(name||""));
   if(/ошибка/.test(r)||/^ошибка$/.test(norm(name))){const m=/разница\s*([+-]?\d+)/i.exec(info||"");const d=m?+m[1]:0;return{p:Math.max(0,d),t:"исправление журнала"}}
   const online=/онлайн|вебинар|дистанц|http|zoom|edpc/.test(x)&&!/очно/.test(x),part=online?3:5,parts=[];let p;
-  if(/доклад/.test(r)){p=part+5;parts.push("доклад")}else if(/организ|админ|оргкомитет/.test(r)){p=2;parts.push("оргкомитет")}else{p=part}
+  if(/доклад/.test(r)||/(^|[^а-я])доклад([^а-я]|$)/.test(norm(info))){p=(/организ|админ|оргкомитет/.test(r)?2:part)+5;parts.push("доклад")}else if(/организ|админ|оргкомитет/.test(r)){p=2;parts.push("оргкомитет")}else{p=part}
   parts.unshift(online?"онлайн":"очно");if(/выезд/.test(x)){p+=5;parts.push("выезд")}if(/публикац|статья/.test(x)){p+=10;parts.push("публикация")}
   return{p,t:parts.join(", ")}}
 const STOP=new Set(["конференция","вебинар","мероприятие","форум","лекция","семинар","online","онлайн","день","2026","российской","федерации","ведение"]);
@@ -498,7 +498,7 @@ $("sf-role").onchange=()=>{$("sf-role-other-l").hidden=$("sf-role").value!=="oth
 ["sf-format","sf-pres","sf-trip","sf-pub","sf-dipl","sf-have","sf-want","sf-role-other"].forEach(id=>$(id).addEventListener("input",sfCalc));
 function sfCalc(){if(MODE==="error"){const d=(+$("sf-want").value||0)-(+$("sf-have").value||0);$("sf-points").textContent=(d>0?"+":"")+d;$("sf-pnote").textContent="разница";return}
   const on=$("sf-format").value==="Онлайн",role=norm($("sf-role").value==="other"?$("sf-role-other").value:$("sf-role").value);
-  let p=/организ|админ|оргкомитет/.test(role)?2:(on?3:5);if(/доклад/.test(role))p+=5;if($("sf-trip").checked)p+=5;if($("sf-pub").checked)p+=10;if($("sf-dipl").checked)p+=2;
+  let p=/организ|админ|оргкомитет/.test(role)?2:(on?3:5);if(/доклад/.test(role)||$("sf-pres").checked)p+=5;if($("sf-trip").checked)p+=5;if($("sf-pub").checked)p+=10;if($("sf-dipl").checked)p+=2;
   $("sf-points").textContent=p;$("sf-pnote").textContent="баллов примерно"}
 if(UPLOAD_URL){$("sf-filerow").hidden=false}
 $("sf-file").addEventListener("change",e=>{const f=e.target.files[0];if(f&&f.size>15*1024*1024){e.target.value="";$("sf-fname").textContent="Больше 15 МБ, выберите поменьше";return}
@@ -511,7 +511,7 @@ const b64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>re
 async function uploadProof(meta,file){const f0=file||$("sf-file").files[0];if(!f0||!UPLOAD_URL)return null;const f=await shrink(f0);
   const r=await fetch(UPLOAD_URL,{method:"POST",body:JSON.stringify({file:await b64(f),type:f.type||"image/jpeg",name:f.name,...meta})});let j;try{j=await r.json()}catch(x){throw new Error("скрипт ответил не JSON, код "+r.status+": проверьте развертывание")}if(!j.ok)throw new Error(j.error||"upload");return j.url}
 function extraText(){if(MODE==="error"){const h=$("sf-have").value,w=$("sf-want").value,d=(+w||0)-(+h||0);return[`В журнале ${h||"?"}, должно быть ${w||"?"}`+(h&&w?`, разница ${d>0?"+":""}${d}`:""),$("sf-ewhat").value.trim(),$("sf-extra").value.trim()].filter(Boolean).join(". ")}
-  const f=[$("sf-format").value];[["pres","презентация"],["trip","выезд"],["pub","публикация статьи"],["dipl","диплом или грамота"]].forEach(([k,t])=>{if($("sf-"+k).checked)f.push(t)});return[f.join(" + "),$("sf-extra").value.trim()].filter(Boolean).join(". ")}
+  const f=[$("sf-format").value];[["pres","доклад"],["trip","выезд"],["pub","публикация статьи"],["dipl","диплом или грамота"]].forEach(([k,t])=>{if($("sf-"+k).checked)f.push(t)});return[f.join(" + "),$("sf-extra").value.trim()].filter(Boolean).join(". ")}
 $("sf").addEventListener("submit",async ev=>{ev.preventDefault();document.querySelectorAll("#sf .err").forEach(x=>x.classList.remove("err"));
   const need=["sf-name","sf-subj"].concat(MODE==="event"?["sf-title","sf-date"]:["sf-edate","sf-have","sf-want"]);if(MODE==="event"&&$("sf-role").value==="other")need.push("sf-role-other");
   const bad=need.filter(id=>!$(id).value.trim());const hasFile=!!$("sf-file").files[0]&&!!UPLOAD_URL;
