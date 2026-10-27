@@ -89,6 +89,7 @@ function editApp_(d) {
     if (s.title != null && String(s.title).trim()) sh.getRange(row, 4).setValue(cut(s.title));
     if (s.info != null) sh.getRange(row, 6).setValue(cut(s.info));
     if (s.subj) sh.getRange(row, 8).setValue(cut(s.subj));
+    if (s.proof) { const was = String(disp[i][6] || '').trim(); const keep = was && !/^нет$/i.test(was) ? was + ' ; ' : ''; sh.getRange(row, 7).setValue(cut(keep + s.proof)); }
     if (s.hide) sh.getRange(row, 10).setValue('да');
     return { ok: true, row: row };
   } finally { lock.releaseLock(); }
