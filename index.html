@@ -56,6 +56,16 @@ table.days{border-collapse:collapse;width:100%;min-width:520px;font-variant-nume
 .days td:first-child,.days th:first-child{text-align:left;white-space:nowrap}
 .days tr.today td{background:#FAFBFF}
 .days tr.sum td{font-weight:700;background:var(--fill)}
+.subjgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.subj{border:1px solid var(--line);border-radius:14px;padding:12px 12px 6px}
+.subj .sh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 8px;flex-wrap:wrap}
+.subj h3{margin:0;font-size:17px}.subj .sh span{font-size:13px;color:var(--muted)}
+.subj table.days{min-width:0}
+.subj .days td.k{color:var(--muted);font-size:13px;text-align:left}
+.subj .days td.cm{color:var(--muted)}
+.subj .days tr.fut td{color:var(--faint)}
+.subj .days tr.ex td{background:#FBFBFB}
+.subj .wd{color:var(--faint)}.subj .nt{margin:6px 2px}
 .c{display:inline-block;min-width:34px;padding:3px 6px;border-radius:8px;font-family:var(--mono);font-size:13px}
 .c.ok{background:var(--green-t);color:#137333}.c.on{background:var(--yellow-t);color:#8a5a00}.c.miss{background:var(--red-t);color:#b3261e}.c.fut{min-width:22px;height:22px;padding:0;border:1px dashed var(--line);vertical-align:middle}.c.plus{background:var(--blue-t);color:#1a56c4}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 0 0}
@@ -149,7 +159,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
 
   <nav role="tablist">
     <button role="tab" data-tab="sum" class="on">Итоги</button>
-    <button role="tab" data-tab="days">По дням</button>
+    <button role="tab" data-tab="days">По предметам</button>
     <button role="tab" data-tab="apps">Мероприятия</button>
     <button role="tab" data-tab="send">Подать</button>
     <button role="tab" data-tab="rep">Отчёт</button>
@@ -378,30 +388,30 @@ async function loadSheet(s){if(SHEETS[s.id])return SHEETS[s.id];
   const cols=head.map((h,j)=>({j,date:toISO(h),label:h,dop:/^доп/i.test(h)||/доп$/i.test(h),total:/итого/i.test(h)}));
   return SHEETS[s.id]={rows:rows.slice(hi+1),cols,nameCol:head.findIndex(c=>norm(c).includes("фио"))};}
 async function loadDays(name){
-  const box=$("daysbox");if(!name){box.innerHTML='<div class="empty">Выберите себя вверху, чтобы увидеть свои баллы по дням.</div>';return}
+  const box=$("daysbox");if(!name){box.innerHTML='<div class="empty">Выберите себя вверху, чтобы увидеть свои баллы по предметам.</div>';return}
   box.innerHTML='<div class="empty">Загружаю журнал…</div>';
-  const key=norm(name),byDate={},extra={},totals={};let ok=0;
-  for(const s of SUBJ){try{const T=await loadSheet(s);const nc=T.nameCol>=0?T.nameCol:1;
-      const row=T.rows.find(r=>norm(r[nc])===key);if(!row)continue;ok++;
-      const held=c=>T.rows.some(r=>NAMES.some(n=>norm(n)===norm(r[nc]))&&(r[c.j]||"")!=="");
-      T.cols.forEach(c=>{const v=row[c.j]||"";
-        if(c.date){const k=c.date;(byDate[k]=byDate[k]||{})[s.id]=(byDate[k][s.id]||[]).concat([{v,held:held(c)}])}
-        else if(c.total)totals[s.id]=v;
-        else if(c.j>nc&&!c.total&&/(доп|ср|заруб|рп)/i.test(c.label)&&v!=="")extra[s.id]=(extra[s.id]||0)+(num(v)||0)});
-    }catch(e){}}
-  if(!ok){box.innerHTML='<div class="empty">Листы по предметам пока не подключены или вашей строки там нет.</div>';return}
-  const today=iso(new Date());
-  const cell=x=>{if(!x)return"";return x.map(o=>{if(!o.held&&o.v==="")return'<span class="c fut" title="впереди"></span>';if(o.v===""||norm(o.v)==="н")return'<span class="c miss">н</span>';const n=num(o.v);return`<span class="c ${n===3?"on":n!=null&&n<5?"on":"ok"}">${$("cumul").checked?o.cum:o.v}</span>`}).join(" ")};
-  const dates=Object.keys(byDate).sort();
-  const cum=$("cumul").checked,run={};
-  if(cum){dates.forEach(d=>SUBJ.forEach(s=>{const x=byDate[d][s.id];if(!x)return;x.forEach(o=>{const n=num(o.v);if(o.held&&n!=null)run[s.id]=(run[s.id]||0)+n;o.cum=run[s.id]||0})}))}
-  let h='<div class="tablewrap"><table class="days"><thead><tr><th>Дата</th>'+SUBJ.map(s=>`<th>${s.sheet}</th>`).join("")+"</tr></thead><tbody>";
-  let mark=false;
-  dates.forEach(d=>{const wd=["вс","пн","вт","ср","чт","пт","сб"][new Date(d+"T12:00").getDay()];const t=!mark&&d>=today;if(t)mark=true;
-    h+=`<tr${t?' class="today"':""}><td>${ddmm(d)} <span style="color:var(--faint)">${wd}</span></td>`+SUBJ.map(s=>`<td>${cell(byDate[d][s.id])}</td>`).join("")+"</tr>"});
-  h+='<tr><td>Доп. и задания</td>'+SUBJ.map(s=>`<td>${extra[s.id]?`<span class="c plus">+${extra[s.id]}</span>`:""}</td>`).join("")+"</tr>";
-  h+='<tr class="sum"><td>Итого</td>'+SUBJ.map(s=>`<td>${totals[s.id]??""}</td>`).join("")+"</tr></tbody></table></div>";
-  box.innerHTML=h;
+  const key=norm(name),today=iso(new Date()),cum=$("cumul").checked,WD=["вс","пн","вт","ср","чт","пт","сб"];
+  const kind=l=>{const t=norm(l).replace(/\d{1,2}\.\d{1,2}\.\d{4}/,"").trim();return /^л/.test(t)?"лекция":/^с/.test(t)?"семинар":""};
+  const who=l=>{const m=/(батурин|зуева|морозов)/i.exec(l||"");return m?m[1][0].toUpperCase()+m[1].slice(1):""};
+  const badge=(v,held)=>{if(!held&&v==="")return'<span class="c fut" title="впереди"></span>';if(v===""||norm(v)==="н")return'<span class="c miss">н</span>';const n=num(v);return`<span class="c ${n!=null&&n<5?"on":"ok"}">${esc(v)}</span>`};
+  let html="",ok=0;
+  for(const s of SUBJ){let T;try{T=await loadSheet(s)}catch(e){continue}
+    const nc=T.nameCol>=0?T.nameCol:1,row=T.rows.find(r=>norm(r[nc])===key);if(!row)continue;ok++;
+    const held=c=>T.rows.some(r=>NAMES.some(n=>norm(n)===norm(r[nc]))&&(r[c.j]||"")!=="");
+    let run=0,mark=false,rows="",extra="",total="",note="",cnt=0,miss=0;const anyK=T.cols.some(c=>c.date&&(kind(c.label)||who(c.label))),cs=anyK?2:1;
+    T.cols.forEach(c=>{const v=(row[c.j]||"").trim();
+      if(c.date){const h=held(c),n=num(v);if(h&&n!=null)run+=n;if(h){cnt++;if(n==null)miss++}
+        const t=!mark&&c.date>=today;if(t)mark=true;
+        const k=kind(c.label),w=who(c.label);
+        rows+=`<tr${t?' class="today"':""}${!h&&v===""?' class="fut"':""}><td>${ddmm(c.date)} <span class="wd">${WD[new Date(c.date+"T12:00").getDay()]}</span></td>${anyK?`<td class="k">${[k,w].filter(Boolean).join(", ")}</td>`:""}<td>${badge(v,h)}</td>${cum?`<td class="cm">${h?run:""}</td>`:""}</tr>`}
+      else if(c.total)total=v;
+      else if(/примеч/i.test(c.label))note=v;
+      else if(c.j>nc&&v!==""&&/(доп|ср|заруб|рп)/i.test(c.label)){run+=num(v)||0;extra+=`<tr class="ex"><td colspan="${cs}">${esc(c.label.replace(/\s*\d{1,2}\.\d{1,2}\.\d{4}/,"")||"Доп.")}</td><td><span class="c plus">+${esc(v)}</span></td>${cum?`<td class="cm">${run}</td>`:""}</tr>`}});
+    html+=`<section class="subj"><div class="sh"><h3>${s.name}</h3><span>пропусков ${miss} · итого <b>${esc(total||String(run))}</b></span></div>
+      <div class="tablewrap"><table class="days"><thead><tr><th>Дата</th>${anyK?"<th>Занятие</th>":""}<th>Балл</th>${cum?"<th>Всего</th>":""}</tr></thead><tbody>${rows}${extra}
+      <tr class="sum"><td colspan="${cs}">Итого</td><td>${esc(total||String(run))}</td>${cum?"<td></td>":""}</tr></tbody></table></div>
+      ${note?`<p class="hint nt">Примечание: ${esc(note)}</p>`:""}</section>`}
+  box.innerHTML=ok?`<div class="subjgrid">${html}</div>`:'<div class="empty">Листы по предметам пока не подключены или вашей строки там нет.</div>';
 }
 
 $("cumul").addEventListener("change",()=>loadDays(S.who));
