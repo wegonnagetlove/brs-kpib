@@ -452,7 +452,12 @@ async function loadApps(name){
   try{const rows=await appRows();const key=norm(name);
     APPS=rows.filter(r=>norm(r.name)===key&&!EXCLUDE.test(r.title||"")).map(r=>{const {date,title,role,info,status}=r,sid=subjOf(r.subjRaw),e=estimate(title,role,info),label=`${date}, ${title}`;
       return{...r,sid,e,label,counted:!!sid&&inJournal(sid,date,title,status)}});
-    let changed=false;APPS.filter(a=>a.counted).forEach(a=>{const k=S.events.findIndex(v=>v.form===a.label);if(k>=0){S.events.splice(k,1);changed=true}});if(changed){save();tiles()}
+    // заявки, добавленные в прогноз, сверяются с таблицей при каждой загрузке: предмет и баллы берутся текущие,
+    // зачтённые, скрытые и удалённые из таблицы убираются из прогноза
+    let changed=false;S.events=S.events.filter(v=>{if(!v.form)return true;const a=APPS.find(x=>x.label===v.form);
+      if(!a||a.counted||!a.sid){changed=true;return false}
+      if(v.s!==a.sid||v.p!==a.e.p){v.s=a.sid;v.p=a.e.p;changed=true}return true});
+    if(changed)save();tiles();
     renderApps();
   }catch(e){ul.innerHTML='<li><span class="hint">Не удалось загрузить заявки.</span></li>'}}
 function renderApps(){const ul=$("apps");ul.innerHTML="";let pend=0;
