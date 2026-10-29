@@ -327,8 +327,7 @@ async function loadSchedule(){
       if(Object.keys(by).length){SUBJ.forEach(s=>{if(by[s.id])s.dates=by[s.id].sort()});SCHED_SRC="лист «Расписание»";return}}}catch(e){}
   let got=false;for(const s of SUBJ){try{const T=await loadSheet(s);const d=T.cols.filter(c=>c.date).map(c=>c.date).sort();if(d.length){s.dates=d;got=true}}catch(e){}}
   if(got)SCHED_SRC="листы журнала"}
-// заявки из таблицы идут в прогноз сами (по текущему предмету в таблице); вручную добавленные мероприятия хранятся в браузере
-const evSum=id=>S.events.filter(e=>!e.form&&e.s===id).reduce((a,e)=>a+e.p,0)+APPS.filter(a=>a.sid===id&&!a.counted).reduce((t,a)=>t+a.e.p,0);
+const evSum=id=>S.events.filter(e=>e.s===id).reduce((a,e)=>a+e.p,0);
 function calc(s){const st=S.subj[s.id],L=left(s).length,cur=num(st.cur)||0;
   const off=Math.max(0,Math.min(L,st.off==null?L:+st.off)),on=Math.max(0,Math.min(L-off,+st.on||0)),miss=L-off-on,ev=evSum(s.id);
   const total=cur+off*5+on*3+(+st.bonus||0)+ev,abs=(+st.abs||0)+miss;
@@ -346,7 +345,7 @@ function tiles(){
       <div class="bar"><i class="f" style="width:${pc(r.total)}%"></i><i class="c" style="width:${pc(num(st.cur))}%"></i><span class="t" style="left:${pc(st.target)}%"></span></div>
       <div class="row"><span class="pill p-${cls}">${r.g[0]}</span><span>${r.need>0?`не хватает <b>${r.need}</b>`:`запас <b>${-r.need}</b>`}</span></div>
       <div class="row"><span>Пропусков <b>${r.abs}</b> из ${maxAbs(s,st.target)} допустимых</span><span>осталось занятий <b>${r.L}</b> из ${s.dates.length}</span></div>
-      ${r.ev?`<div class="row"><span>с заявками и мероприятиями: +${r.ev}</span></div>`:""}
+      ${r.ev?`<div class="row"><span>с мероприятиями из прогноза: +${r.ev}</span></div>`:""}
       ${r.needAll>0?`<p class="hint">Даже при полном посещении нужно ещё ${r.needAll} за оценки или мероприятия.</p>`:""}`
       :`<p class="hint">Выберите себя вверху или впишите баллы в настройках.</p>`}
       <details class="cfg"${has?"":" open"}><summary>Настроить прогноз</summary><div class="grid">
@@ -452,13 +451,13 @@ async function loadApps(name){
   try{const rows=await appRows();const key=norm(name);
     APPS=rows.filter(r=>norm(r.name)===key&&!EXCLUDE.test(r.title||"")).map(r=>{const {date,title,role,info,status}=r,sid=subjOf(r.subjRaw),e=estimate(title,role,info),label=`${date}, ${title}`;
       return{...r,sid,e,label,counted:!!sid&&inJournal(sid,date,title,status)}});
-    const before=S.events.length;S.events=S.events.filter(v=>!v.form);if(S.events.length!==before)save();tiles();
+    let changed=false;APPS.filter(a=>a.counted).forEach(a=>{const k=S.events.findIndex(v=>v.form===a.label);if(k>=0){S.events.splice(k,1);changed=true}});if(changed){save();tiles()}
     renderApps();
   }catch(e){ul.innerHTML='<li><span class="hint">Не удалось загрузить заявки.</span></li>'}}
 function renderApps(){const ul=$("apps");ul.innerHTML="";let pend=0;
   const manual=S.events.filter(e=>!e.form);
   if(!APPS.length&&!manual.length){ul.innerHTML='<li><span class="hint">Заявок пока нет. Подать можно во вкладке «Подать заявку».</span></li>'}
-  APPS.forEach(a=>{
+  APPS.forEach(a=>{const added=S.events.some(v=>v.form===a.label);if(!a.counted&&!added&&a.sid)pend++;
     const li=document.createElement("li");const sname=a.sid?SUBJ.find(s=>s.id===a.sid).sheet:"предмет?";
     li.innerHTML=`<div class="t"><div></div><small>${sname} · ${a.date} · ${a.e.t}</small></div><div class="r"></div>`;
     li.querySelector(".t div").textContent=a.title.replace(/\s*https?:\S+/g,"")||a.title;
@@ -466,11 +465,13 @@ function renderApps(){const ul=$("apps");ul.innerHTML="";let pend=0;
     const r=li.querySelector(".r");
     if(CAN_EDIT&&a.ts&&!/^да/.test(norm(a.status))){const eb=document.createElement("button");eb.type="button";eb.className="btn sm ghost";eb.textContent="Изменить";eb.onclick=()=>openEdit(li,a);r.appendChild(eb)}
     if(a.counted)r.insertAdjacentHTML("beforeend",'<span class="pill p-ok">в журнале</span>');
-    else r.insertAdjacentHTML("beforeend",a.sid?`<b>+${a.e.p}</b><span class="pill p-warn">в прогнозе</span>`:'<span class="pill p-bad">нет предмета</span>');
+    else{r.insertAdjacentHTML("beforeend",`<b>+${a.e.p}</b>`);const b=document.createElement("button");b.type="button";b.className="btn sm "+(added?"ghost":"");b.textContent=added?"В прогнозе ✓":"В прогноз";b.disabled=!a.sid;
+      b.onclick=()=>{const k=S.events.findIndex(v=>v.form===a.label);if(k>=0)S.events.splice(k,1);else S.events.push({n:a.label,s:a.sid,p:a.e.p,form:a.label});save();tiles();renderApps()};r.appendChild(b)}
     ul.appendChild(li)});
   manual.forEach(e=>{const li=document.createElement("li");li.innerHTML=`<div class="t"><div></div><small>${SUBJ.find(s=>s.id===e.s).sheet} · добавлено вручную</small></div><div class="r"><b>+${e.p}</b><button class="btn sm ghost" type="button">Убрать</button></div>`;
     li.querySelector(".t div").textContent=e.n;li.querySelector("button").onclick=()=>{S.events.splice(S.events.indexOf(e),1);save();tiles();renderApps()};ul.appendChild(li)});
-  $("addall").hidden=true;
+  const all=$("addall");all.hidden=!pend;all.textContent=`Все незачтённые в прогноз (${pend})`;
+  all.onclick=()=>{APPS.forEach(a=>{if(a.sid&&!a.counted&&!S.events.some(v=>v.form===a.label))S.events.push({n:a.label,s:a.sid,p:a.e.p,form:a.label})});save();tiles();renderApps()};
 }
 function openEdit(li,a){if(li.querySelector(".edit"))return;li.classList.add("ed");
   const f=document.createElement("div");f.className="edit";
@@ -493,7 +494,8 @@ function openEdit(li,a){if(li.querySelector(".edit"))return;li.classList.add("ed
     try{const pr=[];if(ef.files[0]){st.textContent="Загружаю файл…";pr.push(await uploadProof({who:a.name,date:a.date||"",title:set.title||a.title},ef.files[0]))}
       if(f.querySelector(".e-max").checked)pr.push("Фото в Максе");if(pr.length)set.proof=pr.join(" ; ");
       st.textContent="Сохраняю…";const r=await fetch(UPLOAD_URL,{method:"POST",body:JSON.stringify({action:"edit",ts:a.ts,name:a.name,old:a.title,set})});const j=await r.json();if(!j.ok)throw new Error(j.error||"edit");
-            st.textContent="Сохранено. Обновляю список…";setTimeout(()=>loadApps(S.who),2500)}
+      const k=S.events.findIndex(v=>v.form===a.label);if(k>=0){S.events.splice(k,1);save();tiles()}
+      st.textContent="Сохранено. Обновляю список…";setTimeout(()=>loadApps(S.who),2500)}
     catch(e){st.textContent="Не сохранилось: "+(e.message||e);btn.disabled=false}}}
 SUBJ.forEach(s=>$("c-subj").insertAdjacentHTML("beforeend",`<option value="${s.id}">${s.sheet}</option>`));
 const cTot=()=>["c-part","c-talk","c-extra","c-dipl","c-other"].reduce((a,id)=>a+(+$(id).value),0);
