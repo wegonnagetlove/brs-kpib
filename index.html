@@ -258,7 +258,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
     </div>
   </section>
 
-  <p class="hint" style="margin:0 0 8px">Версия сайта от 29.10.2026</p>
+  <p class="hint" style="margin:0 0 8px">Версия сайта от 29.10.2026, 23:00</p>
   <details class="more"><summary>Правила БРС</summary>
     <div class="rules">
       <table><tr><td>Допуск</td><td>от 70, пропусков до 9</td></tr><tr><td>Зачёт</td><td>от 100, до 8</td></tr><tr><td>«Удовлетворительно»</td><td>от 100, до 6</td></tr><tr><td>«Хорошо»</td><td>от 110, до 4</td></tr><tr><td>«Отлично» автоматом</td><td>от 120, до 2</td></tr></table>
@@ -328,7 +328,12 @@ async function loadSchedule(){
       if(Object.keys(by).length){SUBJ.forEach(s=>{if(by[s.id])s.dates=by[s.id].sort()});SCHED_SRC="лист «Расписание»";return}}}catch(e){}
   let got=false;for(const s of SUBJ){try{const T=await loadSheet(s);const d=T.cols.filter(c=>c.date).map(c=>c.date).sort();if(d.length){s.dates=d;got=true}}catch(e){}}
   if(got)SCHED_SRC="листы журнала"}
-const evSum=id=>S.events.filter(e=>e.s===id).reduce((a,e)=>a+e.p,0);
+// Заявки на мероприятия с 14.10 (после внесения баллов 13.10) и исправления журнала идут в прогноз сами,
+// по предмету, который стоит в таблице. Более ранние добавляются кнопкой «В прогноз»: часть из них уже учтена в журнале.
+const AUTO_FROM="2026-10-14";
+const isAuto=a=>!!a.sid&&!a.counted&&(/ошибка/i.test(a.role||"")||/^\s*ошибка\s*$/i.test(a.title||"")||(toISO(a.date)||"")>=AUTO_FROM);
+const evSum=id=>{const auto=APPS.filter(isAuto),labels=new Set(auto.map(a=>a.label));
+  return S.events.filter(e=>e.s===id&&!(e.form&&labels.has(e.form))).reduce((t,e)=>t+e.p,0)+auto.filter(a=>a.sid===id).reduce((t,a)=>t+a.e.p,0)};
 function calc(s){const st=S.subj[s.id],L=left(s).length,cur=num(st.cur)||0;
   const off=Math.max(0,Math.min(L,st.off==null?L:+st.off)),on=Math.max(0,Math.min(L-off,+st.on||0)),miss=L-off-on,ev=evSum(s.id);
   const total=cur+off*5+on*3+(+st.bonus||0)+ev,abs=(+st.abs||0)+miss;
@@ -463,7 +468,7 @@ async function loadApps(name){
 function renderApps(){const ul=$("apps");ul.innerHTML="";let pend=0;
   const manual=S.events.filter(e=>!e.form);
   if(!APPS.length&&!manual.length){ul.innerHTML='<li><span class="hint">Заявок пока нет. Подать можно во вкладке «Подать заявку».</span></li>'}
-  APPS.forEach(a=>{const added=S.events.some(v=>v.form===a.label);if(!a.counted&&!added&&a.sid)pend++;
+  APPS.forEach(a=>{const auto=isAuto(a),added=S.events.some(v=>v.form===a.label);if(!a.counted&&!auto&&!added&&a.sid)pend++;
     const li=document.createElement("li");const sname=a.sid?SUBJ.find(s=>s.id===a.sid).sheet:"предмет?";
     li.innerHTML=`<div class="t"><div></div><small>${sname} · ${a.date} · ${a.e.t}</small></div><div class="r"></div>`;
     li.querySelector(".t div").textContent=a.title.replace(/\s*https?:\S+/g,"")||a.title;
@@ -471,6 +476,7 @@ function renderApps(){const ul=$("apps");ul.innerHTML="";let pend=0;
     const r=li.querySelector(".r");
     if(CAN_EDIT&&a.ts&&!/^да/.test(norm(a.status))){const eb=document.createElement("button");eb.type="button";eb.className="btn sm ghost";eb.textContent="Изменить";eb.onclick=()=>openEdit(li,a);r.appendChild(eb)}
     if(a.counted)r.insertAdjacentHTML("beforeend",'<span class="pill p-ok">в журнале</span>');
+    else if(auto)r.insertAdjacentHTML("beforeend",`<b>+${a.e.p}</b><span class="pill p-warn">в прогнозе</span>`);
     else{r.insertAdjacentHTML("beforeend",`<b>+${a.e.p}</b>`);const b=document.createElement("button");b.type="button";b.className="btn sm "+(added?"ghost":"");b.textContent=added?"В прогнозе ✓":"В прогноз";b.disabled=!a.sid;
       b.onclick=()=>{const k=S.events.findIndex(v=>v.form===a.label);if(k>=0)S.events.splice(k,1);else S.events.push({n:a.label,s:a.sid,p:a.e.p,form:a.label});save();tiles();renderApps()};r.appendChild(b)}
     ul.appendChild(li)});
