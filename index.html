@@ -123,6 +123,33 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
 .rep-opts input[type=checkbox],.rep-opts input[type=radio]{width:16px;height:16px;margin:0;flex:none}
 .rep-who{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px}
 #report{display:none}
+/* оформление отчёта: одно и то же для печати, PDF и просмотра на телефоне */
+#report{color:#202124;font:10pt/1.3 var(--font);background:#fff}
+#report h1{font-size:15pt;margin:0 0 2mm}
+#report .sub{color:#5F6368;font-size:9pt;margin:0 0 5mm}
+#report h2{font-size:12pt;margin:0 0 2mm;padding:2mm 3mm;background:#F1F3F4;border-left:3px solid #4285F4}
+#report table{border-collapse:collapse;width:100%;margin:0 0 3mm;font-variant-numeric:tabular-nums}
+#report th,#report td{border:0.3mm solid #DADCE0;padding:1.3mm 2mm;text-align:left;vertical-align:top;font-size:9pt}
+#report th{background:#F1F3F4;color:#5F6368;font-weight:600}
+#report td.n,#report th.n{text-align:center;white-space:nowrap}
+#report td.nm{white-space:nowrap;width:1%}
+#report td{overflow-wrap:anywhere}#report td.ttl{min-width:55mm}#report a.url{font-size:7pt;white-space:nowrap;overflow-wrap:normal}#report a{color:#1a56c4;text-decoration:underline}
+#report .st{break-inside:avoid;margin:0 0 6mm}
+#report .pb{break-before:page}
+#report .ok{color:#137333;font-weight:600}#report .warn{color:#8a5a00;font-weight:600}#report .bad{color:#b3261e;font-weight:600}
+#report .muted{color:#5F6368}
+#report .note{font-size:8.5pt;color:#5F6368;margin-top:4mm}
+#report .sign{display:flex;justify-content:space-between;margin-top:10mm;font-size:10pt}
+/* просмотр отчёта на телефоне и планшете */
+#rview{position:fixed;inset:0;z-index:2147483646;background:#fff;display:flex;flex-direction:column}
+#rview[hidden]{display:none}
+#rview .rvbar{flex:none;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;border-bottom:1px solid var(--line);background:#fff}
+#rview .rvbar .hint{flex:1 1 100%;margin:0}
+#rview .rvbar .btn{flex:1 1 auto}
+#rview .rvbar .btn.sec{background:#fff;color:var(--fg);border:1px solid var(--line)}
+#rview .scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--fill);padding:12px}
+#rview .sheet{background:#fff;width:1047px;padding:12mm;box-sizing:border-box;transform-origin:0 0}
+body.rv{overflow:hidden}
 @media print{
   @page{size:A4 landscape;margin:12mm 12mm}
   html,body{background:#fff}
@@ -130,22 +157,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
   /* плашка хостинга и прочие вставки поверх страницы не попадают в PDF */
   body>*:not(#report){display:none!important}
   iframe,a[href*="tatnet"]{display:none!important}
-  #report{display:block;color:#202124;font:10pt/1.3 var(--font)}
-  #report h1{font-size:15pt;margin:0 0 2mm}
-  #report .sub{color:#5F6368;font-size:9pt;margin:0 0 5mm}
-  #report h2{font-size:12pt;margin:0 0 2mm;padding:2mm 3mm;background:#F1F3F4;border-left:3px solid #4285F4}
-  #report table{border-collapse:collapse;width:100%;margin:0 0 3mm;font-variant-numeric:tabular-nums}
-  #report th,#report td{border:0.3mm solid #DADCE0;padding:1.3mm 2mm;text-align:left;vertical-align:top;font-size:9pt}
-  #report th{background:#F1F3F4;color:#5F6368;font-weight:600}
-  #report td.n,#report th.n{text-align:center;white-space:nowrap}
-  #report td.nm{white-space:nowrap;width:1%}
-  #report td{overflow-wrap:anywhere}#report td.ttl{min-width:55mm}#report a.url{font-size:7pt;white-space:nowrap;overflow-wrap:normal}#report a{color:#1a56c4;text-decoration:underline}
-  #report .st{break-inside:avoid;margin:0 0 6mm}
-  #report .pb{break-before:page}
-  #report .ok{color:#137333;font-weight:600}#report .warn{color:#8a5a00;font-weight:600}#report .bad{color:#b3261e;font-weight:600}
-  #report .muted{color:#5F6368}
-  #report .note{font-size:8.5pt;color:#5F6368;margin-top:4mm}
-  #report .sign{display:flex;justify-content:space-between;margin-top:10mm;font-size:10pt}
+  #report{display:block}
 }
 </style>
 </head>
@@ -258,7 +270,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
     </div>
   </section>
 
-  <p class="hint" style="margin:0 0 8px">Версия сайта от 29.10.2026, 23:00</p>
+  <p class="hint" style="margin:0 0 8px">Версия сайта от 04.11.2026, 16:30</p>
   <details class="more"><summary>Правила БРС</summary>
     <div class="rules">
       <table><tr><td>Допуск</td><td>от 70, пропусков до 9</td></tr><tr><td>Зачёт</td><td>от 100, до 8</td></tr><tr><td>«Удовлетворительно»</td><td>от 100, до 6</td></tr><tr><td>«Хорошо»</td><td>от 110, до 4</td></tr><tr><td>«Отлично» автоматом</td><td>от 120, до 2</td></tr></table>
@@ -268,6 +280,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-size:14px}
   </details>
 </div>
 <div id="report"></div>
+<div id="rview" hidden><div class="rvbar"><p class="hint" id="rv-status">Готовлю PDF…</p><button class="btn" type="button" id="rv-save" disabled>Сохранить PDF</button><button class="btn sec" type="button" id="rv-print">Печать</button><button class="btn sec" type="button" id="rv-close">Закрыть</button></div><div class="scroll"><div class="sheet" id="rv-sheet"></div></div></div>
 
 <script>
 const NAMES=["Астатурян Тигран Оганесович","Астахова София Юрьевна","Батурина Анастасия Николаевна","Вебер-Гасанова Анна Акимовна","Волченков Дмитрий Алексеевич","Воронина Кристина Николаевна","Давыдов Натан Владимирович","Дацкевич Федор Михайлович","Демихов Валентин Михайлович","Калмаков Даниил Николаевич","Комаристова Мария Викторовна","Корниенко Дмитрий Сергеевич","Малюта Тимофей Дмитриевич","Мартынова Ольга Владимировна","Петросян Нарек Ашотович","Петрухина Полина Игоревна","Подгорнова Елизавета Николаевна","Сакаев Савелий Игоревич","Самсонов Иван Дмитриевич","Фомченко Роман Вячеславович","Хайбулин Амир Алибекович","Халатян Марина Сергеевна","Шарова Дарья Сергеевна"];
@@ -568,6 +581,31 @@ const fmtD=d=>d?d.slice(8,10)+"."+d.slice(5,7)+"."+d.slice(0,4):"";
 // всё, что хостинг закрепляет поверх страницы (плашка «Работает на …»), прячем на время печати
 const HIDDEN=[];function hideOverlays(){document.querySelectorAll("body *").forEach(el=>{if(el.closest("#report"))return;const cs=getComputedStyle(el);if((cs.position==="fixed"||cs.position==="sticky")&&!el.closest(".wrap")){HIDDEN.push([el,el.style.display]);el.style.setProperty("display","none","important")}})}
 window.addEventListener("beforeprint",hideOverlays);window.addEventListener("afterprint",()=>{HIDDEN.splice(0).forEach(([el,d])=>{el.style.display=d})});
+// телефон и планшет: окно печати там часто не открывается, поэтому отчёт показывается на экране и сохраняется готовым PDF-файлом
+const IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)||matchMedia("(pointer:coarse)").matches&&innerWidth<1100;
+let PDF_BLOB=null,PDF_NAME="";
+const loadLib=()=>window.html2pdf?Promise.resolve():new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";sc.onload=res;sc.onerror=()=>rej(new Error("не загрузилась библиотека PDF"));document.head.appendChild(sc)});
+function fitSheet(){const sh=$("rv-sheet"),sc=$("rview").querySelector(".scroll");const k=Math.min(1,(sc.clientWidth-24)/1047);sh.style.transform=`scale(${k})`;sh.style.marginBottom=(-(1-k)*sh.offsetHeight)+"px"}
+async function openPreview(h,name){
+  PDF_BLOB=null;PDF_NAME=name;$("rv-save").disabled=true;$("rv-status").textContent="Готовлю PDF…";
+  // сам блок #report (с его стилями) переносится в лист просмотра и возвращается обратно при закрытии
+  const sh=$("rv-sheet");sh.innerHTML="";const r=$("report");r.style.display="block";sh.appendChild(r);
+  $("rview").hidden=false;document.body.classList.add("rv");requestAnimationFrame(fitSheet);
+  try{await loadLib();if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const blob=await html2pdf().set({margin:[12,12,12,12],filename:name,image:{type:"jpeg",quality:0.95},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:1047},
+      jsPDF:{unit:"mm",format:"a4",orientation:"landscape"},pagebreak:{mode:["css"],before:".pb",avoid:["tr","h2"]},enableLinks:true})
+      .from(r).outputPdf("blob");
+    PDF_BLOB=blob;$("rv-save").disabled=false;$("rv-status").textContent="PDF готов: "+name}
+  catch(e){$("rv-status").textContent="PDF не получился ("+e.message+"). Можно нажать «Печать» и сохранить через меню печати."}}
+function closePreview(){const r=$("report");r.style.display="";document.body.appendChild(r);$("rview").hidden=true;document.body.classList.remove("rv")}
+$("rv-close").onclick=closePreview;
+$("rv-print").onclick=()=>{const t=document.title;document.title=PDF_NAME.replace(/\.pdf$/,"");closePreview();hideOverlays();setTimeout(()=>{window.print();setTimeout(()=>{document.title=t},500)},100)};
+$("rv-save").onclick=async()=>{if(!PDF_BLOB)return;const file=new File([PDF_BLOB],PDF_NAME,{type:"application/pdf"});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:PDF_NAME});return}}catch(e){if(e&&e.name==="AbortError")return}
+  const u=URL.createObjectURL(PDF_BLOB),a=document.createElement("a");a.href=u;a.download=PDF_NAME;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!navigator.canShare)window.open(u,"_blank");setTimeout(()=>URL.revokeObjectURL(u),60000)},300)};
+addEventListener("resize",()=>{if(!$("rview").hidden)fitSheet()});
 $("r-make").onclick=async()=>{
   const subs=SUBJ.filter(s=>[...document.querySelectorAll(".r-subj:checked")].some(c=>c.value===s.id));
   const who=[...document.querySelectorAll(".r-st:checked")].map(c=>c.value);
@@ -612,8 +650,10 @@ $("r-make").onclick=async()=>{
     h+=`<p class="note">Баллы журнала взяты из таблицы группы. Баллы за заявки посчитаны ориентировочно по шкале БРС кафедры: очно 5, онлайн 3, доклад и выезд по 5, публикация 10, оргкомитет 2. Итого: баллы журнала и баллы по заявкам к учёту. Заявки «уже в журнале» определены по примечаниям в журнале.</p><div class="sign"><span>${today.toLocaleDateString("ru-RU")}</span><span>${esc($("r-from").value)} ____________</span></div>`;
     $("report").innerHTML=h;
     const old=document.title;document.title="БРС="+(who.length===1?who[0].split(" ")[0]:"104КПИБ")+"="+ymd;
-    $("r-status").textContent="Готово. В окне печати выберите «Сохранить как PDF».";
-    hideOverlays();setTimeout(()=>{window.print();setTimeout(()=>{document.title=old},500)},100);
+    const fname=document.title+".pdf";
+    if(IS_MOBILE){document.title=old;$("r-status").textContent="Отчёт открыт для просмотра.";openPreview(h,fname)}
+    else{$("r-status").textContent="Готово. В окне печати выберите «Сохранить как PDF».";
+      hideOverlays();setTimeout(()=>{window.print();setTimeout(()=>{document.title=old},500)},100)}
   }catch(e){$("r-status").textContent="Не удалось собрать отчёт: "+(LASTERR||e.message)}
   $("r-make").disabled=false};
 
