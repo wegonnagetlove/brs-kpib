@@ -3,9 +3,13 @@
 // 2) лист «Заявки»: редактируемая копия ответов формы, новые ответы дописываются сами
 // 3) правка заявки с сайта: предмет, название, доп. информация, скрыть
 // 4) лист «Расписание»: обновляется из выгрузки портала, положенной в папку на Диске
+// 5) заявка с сайта пишется прямо в лист «Заявки» (action: submit), без посредничества формы
+// 6) ответы формы забираются и напрямую из самой формы, даже если её таблица ответов отвязалась
 
 const SPREADSHEET_ID = '1Ibgbp67ott3PQ05LWFKuNsUUFS-343ctYclRpxP0UzI'; // таблица «БРС-для-сайта»
 const SOURCE_SHEET = 'Ответы';   // лист с IMPORTRANGE из таблицы формы
+const FORM_RESP_ID = '1wW2vaMI4iKD0gnqvF2re4pq9Du4PU17NgZVlz9tRChU'; // таблица ответов формы
+const FORM_ID = '1FAIpQLSdz8oPgVgvw9Ly8nwD6F_o6vkUUEj3To0x8xspzk8wGfqJqKg'; // опубликованный id формы (для поиска на Диске)
 const EDIT_SHEET = 'Заявки';     // лист, который можно править руками
 const HEAD = ['Отметка времени','ФИО','Дата','Мероприятие','Роль','Доп. информация','Подтверждение','Предмет','Зачтено (да/нет)','Скрыть (да)'];
 
@@ -17,6 +21,7 @@ function doPost(e) {
   try {
     const d = JSON.parse(e.postData.contents);
     if (d.action === 'edit') return json_(editApp_(d));
+    if (d.action === 'submit') return json_(submitApp_(d));
     const bytes = Utilities.base64Decode(d.file);
     if (bytes.length > MAX_MB * 1024 * 1024) throw new Error('Файл больше ' + MAX_MB + ' МБ');
     const type = String(d.type || '');
@@ -43,8 +48,19 @@ function setup() {
 }
 
 function key_(ts, name) {
-  const t = ts instanceof Date ? ts.getTime() : String(ts || '').trim();
+  const t = ts instanceof Date ? Math.floor(ts.getTime() / 1000) : String(ts || '').trim();
   return t + '|' + String(name || '').trim().toLowerCase();
+}
+// второй ключ: ФИО + название + дата мероприятия, чтобы одна заявка не попала дважды из разных источников
+function key2_(name, title, date, tz) {
+  const d = date instanceof Date ? Utilities.formatDate(date, tz, 'dd.MM.yyyy') : String(date || '').trim();
+  return String(name || '').trim().toLowerCase() + '|' + String(title || '').trim().toLowerCase() + '|' + d;
+}
+function toDate_(v) {
+  if (v instanceof Date) return v;
+  const s = String(v || '').trim(); let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s); if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(s); if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  return s;
 }
 
 function syncApps() {
@@ -62,13 +78,61 @@ function syncApps() {
   const have = new Set();
   if (last > 1) dst.getRange(2, 1, last - 1, 2).getValues().forEach(r => have.add(key_(r[0], r[1])));
   // столбцы ответов формы: A отметка, B ФИО, C название, D дата, E роль, F доп., G подтверждение, H предмет, I зачтено (если есть)
-  const add = srcVals.filter(r => !have.has(key_(r[0], r[1])))
-    .map(r => [r[0], r[1], r[3], r[2], r[4], r[5], r[6], r[7], r[8] || '', '']);
+  const tz = ss.getSpreadsheetTimeZone(), have2 = new Set();
+  if (last > 1) dst.getRange(2, 1, last - 1, 4).getValues().forEach(r => have2.add(key2_(r[1], r[3], r[2], tz)));
+  const add = [];
+  const push = r => { const k = key_(r[0], r[1]), k2 = key2_(r[1], r[3], r[2], tz); if (have.has(k) || have2.has(k2)) return; have.add(k); have2.add(k2); add.push(r); };
+  srcVals.forEach(r => push([r[0], r[1], toDate_(r[3]), r[2], r[4], r[5], r[6], r[7], r[8] || '', '']));
+  // из самой формы берутся только ответы новее последнего в «Ответах»: старые там уже есть (и могли быть поправлены руками)
+  const cut = srcVals.reduce((m, r) => r[0] instanceof Date && r[0] > m ? r[0] : m, new Date(0));
+  try { formRows_().filter(r => r[0] > cut).forEach(push); } catch (err) { Logger.log('Форма: ' + err); }
   if (add.length) {
     dst.getRange(dst.getLastRow() + 1, 1, add.length, HEAD.length).setValues(add);
     dst.getRange(2, 3, dst.getLastRow() - 1, 1).setNumberFormat('dd.mm.yyyy');
   }
   return add.length;
+}
+
+/* ---------- ответы прямо из формы ---------- */
+function getForm_() {
+  try { const u = SpreadsheetApp.openById(FORM_RESP_ID).getFormUrl(); if (u) return FormApp.openByUrl(u); } catch (e) {}
+  const it = DriveApp.searchFiles("mimeType = 'application/vnd.google-apps.form' and trashed = false");
+  while (it.hasNext()) { const f = it.next(); try { const fm = FormApp.openById(f.getId()); if (fm.getPublishedUrl().indexOf(FORM_ID) >= 0) return fm; } catch (e) {} }
+  throw new Error('Форма не найдена');
+}
+function formRows_() {
+  const form = getForm_(), pick = (rs, re) => { const x = rs.find(r => re.test(r.getItem().getTitle())); if (!x) return ''; const v = x.getResponse(); return Array.isArray(v) ? v.join(', ') : v; };
+  return form.getResponses().map(resp => {
+    const rs = resp.getItemResponses();
+    return [resp.getTimestamp(), pick(rs, /^ФИО/i), toDate_(pick(rs, /^Когда/i)), pick(rs, /^Название/i), pick(rs, /^В качестве/i),
+      pick(rs, /^Дополнительная/i), pick(rs, /^Отправьте/i), pick(rs, /^За какой/i), '', ''];
+  }).filter(r => String(r[1]).trim());
+}
+// Запустите вручную, чтобы увидеть в журнале выполнения состояние формы
+function diagnose() {
+  const form = getForm_(), resp = form.getResponses(), last = resp.length ? resp[resp.length - 1] : null;
+  let dest = ''; try { dest = form.getDestinationId(); } catch (e) { dest = 'не привязана'; }
+  const lines = ['Форма: ' + form.getTitle(), 'Принимает ответы: ' + form.isAcceptingResponses(), 'Таблица ответов: ' + dest + (dest === FORM_RESP_ID ? ' (та же)' : ' (ДРУГАЯ или нет)'),
+    'Ответов в форме: ' + resp.length + (last ? ', последний ' + last.getTimestamp() : '')];
+  form.getItems().forEach(it => { let ch = ''; try { const t = it.getType(); if (t == FormApp.ItemType.MULTIPLE_CHOICE) ch = it.asMultipleChoiceItem().getChoices().map(c => c.getValue()).join(' | '); else if (t == FormApp.ItemType.LIST) ch = it.asListItem().getChoices().map(c => c.getValue()).join(' | '); else if (t == FormApp.ItemType.CHECKBOX) ch = it.asCheckboxItem().getChoices().map(c => c.getValue()).join(' | '); } catch (e) {}
+    lines.push('• ' + it.getTitle().slice(0, 60) + ' [' + it.getType() + ']' + (ch ? ': ' + ch : '')); });
+  lines.push('Добавлено в «Заявки» сейчас: ' + syncApps());
+  Logger.log(lines.join('\n')); return lines.join('\n');
+}
+
+/* ---------- заявка с сайта прямо в лист ---------- */
+function submitApp_(d) {
+  const need = ['name', 'title', 'date', 'subj'].filter(k => !String(d[k] || '').trim());
+  if (need.length) throw new Error('Не заполнено: ' + need.join(', '));
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    syncApps();
+    const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EDIT_SHEET), cut = v => String(v == null ? '' : v).slice(0, 2000);
+    const row = [new Date(), cut(d.name), toDate_(d.date), cut(d.title), cut(d.role), cut(d.info), cut(d.proof || 'нет'), cut(d.subj), '', ''];
+    sh.getRange(sh.getLastRow() + 1, 1, 1, HEAD.length).setValues([row]);
+    sh.getRange(sh.getLastRow(), 3).setNumberFormat('dd.mm.yyyy');
+    return { ok: true, row: sh.getLastRow() };
+  } finally { lock.releaseLock(); }
 }
 
 /* ---------- правка заявки с сайта ---------- */

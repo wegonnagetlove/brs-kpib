@@ -270,7 +270,7 @@ body.rv{overflow:hidden}
     </div>
   </section>
 
-  <p class="hint" style="margin:0 0 8px">Версия сайта от 04.11.2026, 16:30</p>
+  <p class="hint" style="margin:0 0 8px">Версия сайта от 04.11.2026, 23:00</p>
   <details class="more"><summary>Правила БРС</summary>
     <div class="rules">
       <table><tr><td>Допуск</td><td>от 70, пропусков до 9</td></tr><tr><td>Зачёт</td><td>от 100, до 8</td></tr><tr><td>«Удовлетворительно»</td><td>от 100, до 6</td></tr><tr><td>«Хорошо»</td><td>от 110, до 4</td></tr><tr><td>«Отлично» автоматом</td><td>от 120, до 2</td></tr></table>
@@ -564,8 +564,13 @@ $("sf").addEventListener("submit",async ev=>{ev.preventDefault();document.queryS
   if(hasFile){$("sf-status").textContent="Загружаю файл…";try{const url=await uploadProof({who:$("sf-name").value,date,title:MODE==="error"?"ОШИБКА":$("sf-title").value.trim()});fd.set(`entry.${ENTRY.proof}`,proofTxt?url+" ; "+proofTxt:url)}
     catch(e){$("sf-status").textContent="Файл не загрузился ("+(e&&e.message||e)+"). Попробуйте ещё раз или вставьте ссылку.";$("sf-send").disabled=false;return}}
   $("sf-status").textContent="Отправляю…";
-  try{await fetch(GFORM+"/formResponse",{method:"POST",mode:"no-cors",body:fd});
-    $("sf-status").textContent="Готово. Заявка появится во вкладке «Мероприятия» через несколько минут.";
+  // сначала прямо в таблицу через скрипт (он отвечает, записалось или нет); если скрипт старый или недоступен, то через форму
+  let direct=false;
+  if(UPLOAD_URL){try{const g=k=>fd.get(`entry.${ENTRY[k]}`)||"";const role=fd.get(`entry.${ENTRY.role}`)==="__other_option__"?fd.get(`entry.${ENTRY.role}.other_option_response`):g("role");
+    const r=await fetch(UPLOAD_URL,{method:"POST",body:JSON.stringify({action:"submit",name:g("name"),title:g("title"),date:`${d}.${m}.${y}`,role,info:g("extra"),proof:g("proof"),subj:g("subj")})});
+    const j=await r.json();if(j.ok)direct=true}catch(e){}}
+  try{if(!direct)await fetch(GFORM+"/formResponse",{method:"POST",mode:"no-cors",body:fd});
+    $("sf-status").textContent=direct?"Готово, заявка записана в таблицу. На сайте появится через 1–2 минуты.":"Готово. Заявка появится во вкладке «Мероприятия» через несколько минут.";
     ["sf-title","sf-date","sf-proof","sf-extra","sf-edate","sf-have","sf-want","sf-ewhat","sf-role-other"].forEach(id=>$(id).value="");["sf-pres","sf-trip","sf-pub","sf-dipl","sf-max"].forEach(id=>$(id).checked=false);$("sf-fclear").click();sfCalc();
     if(S.who)setTimeout(()=>loadApps(S.who),60000)}
   catch(e){$("sf-status").textContent="Не удалось отправить. Проверьте интернет."}
