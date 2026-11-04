@@ -4,7 +4,7 @@
 // 3) правка заявки с сайта: предмет, название, доп. информация, скрыть
 // 4) лист «Расписание»: обновляется из выгрузки портала, положенной в папку на Диске
 // 5) заявка с сайта пишется прямо в лист «Заявки» (action: submit), без посредничества формы
-// 6) ответы формы забираются и напрямую из самой формы, даже если её таблица ответов отвязалась
+// 6) diagnose(): состояние формы (принимает ли ответы, сколько ответов, вопросы)
 
 const SPREADSHEET_ID = '1Ibgbp67ott3PQ05LWFKuNsUUFS-343ctYclRpxP0UzI'; // таблица «БРС-для-сайта»
 const SOURCE_SHEET = 'Ответы';   // лист с IMPORTRANGE из таблицы формы
@@ -83,9 +83,7 @@ function syncApps() {
   const add = [];
   const push = r => { const k = key_(r[0], r[1]), k2 = key2_(r[1], r[3], r[2], tz); if (have.has(k) || have2.has(k2)) return; have.add(k); have2.add(k2); add.push(r); };
   srcVals.forEach(r => push([r[0], r[1], toDate_(r[3]), r[2], r[4], r[5], r[6], r[7], r[8] || '', '']));
-  // из самой формы берутся только ответы новее последнего в «Ответах»: старые там уже есть (и могли быть поправлены руками)
-  const cut = srcVals.reduce((m, r) => r[0] instanceof Date && r[0] > m ? r[0] : m, new Date(0));
-  try { formRows_().filter(r => r[0] > cut).forEach(push); } catch (err) { Logger.log('Форма: ' + err); }
+
   if (add.length) {
     dst.getRange(dst.getLastRow() + 1, 1, add.length, HEAD.length).setValues(add);
     dst.getRange(2, 3, dst.getLastRow() - 1, 1).setNumberFormat('dd.mm.yyyy');
@@ -95,9 +93,7 @@ function syncApps() {
 
 /* ---------- ответы прямо из формы ---------- */
 function getForm_() {
-  try { const u = SpreadsheetApp.openById(FORM_RESP_ID).getFormUrl(); if (u) return FormApp.openByUrl(u); } catch (e) {}
-  const it = DriveApp.searchFiles("mimeType = 'application/vnd.google-apps.form' and trashed = false");
-  while (it.hasNext()) { const f = it.next(); try { const fm = FormApp.openById(f.getId()); if (fm.getPublishedUrl().indexOf(FORM_ID) >= 0) return fm; } catch (e) {} }
+  const u = SpreadsheetApp.openById(FORM_RESP_ID).getFormUrl(); if (u) return FormApp.openByUrl(u);
   throw new Error('Форма не найдена');
 }
 function formRows_() {
@@ -116,7 +112,6 @@ function diagnose() {
     'Ответов в форме: ' + resp.length + (last ? ', последний ' + last.getTimestamp() : '')];
   form.getItems().forEach(it => { let ch = ''; try { const t = it.getType(); if (t == FormApp.ItemType.MULTIPLE_CHOICE) ch = it.asMultipleChoiceItem().getChoices().map(c => c.getValue()).join(' | '); else if (t == FormApp.ItemType.LIST) ch = it.asListItem().getChoices().map(c => c.getValue()).join(' | '); else if (t == FormApp.ItemType.CHECKBOX) ch = it.asCheckboxItem().getChoices().map(c => c.getValue()).join(' | '); } catch (e) {}
     lines.push('• ' + it.getTitle().slice(0, 60) + ' [' + it.getType() + ']' + (ch ? ': ' + ch : '')); });
-  lines.push('Добавлено в «Заявки» сейчас: ' + syncApps());
   Logger.log(lines.join('\n')); return lines.join('\n');
 }
 
@@ -126,7 +121,6 @@ function submitApp_(d) {
   if (need.length) throw new Error('Не заполнено: ' + need.join(', '));
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
-    syncApps();
     const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EDIT_SHEET), cut = v => String(v == null ? '' : v).slice(0, 2000);
     const row = [new Date(), cut(d.name), toDate_(d.date), cut(d.title), cut(d.role), cut(d.info), cut(d.proof || 'нет'), cut(d.subj), '', ''];
     sh.getRange(sh.getLastRow() + 1, 1, 1, HEAD.length).setValues([row]);
