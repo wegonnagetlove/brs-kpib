@@ -121,8 +121,10 @@ function submitApp_(d) {
   if (need.length) throw new Error('Не заполнено: ' + need.join(', '));
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
-    const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EDIT_SHEET), cut = v => String(v == null ? '' : v).slice(0, 2000);
-    const row = [new Date(), cut(d.name), toDate_(d.date), cut(d.title), cut(d.role), cut(d.info), cut(d.proof || 'нет'), cut(d.subj), '', ''];
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID), sh = ss.getSheetByName(EDIT_SHEET), cut = v => String(v == null ? '' : v).slice(0, 2000);
+    // дата разбирается в часовом поясе таблицы, иначе при поясе проекта не Москва она съезжает на день назад
+    let dt = String(d.date).trim(); try { dt = Utilities.parseDate(dt, ss.getSpreadsheetTimeZone(), 'dd.MM.yyyy'); } catch (e) {}
+    const row = [new Date(), cut(d.name), dt, cut(d.title), cut(d.role), cut(d.info), cut(d.proof || 'нет'), cut(d.subj), '', ''];
     sh.getRange(sh.getLastRow() + 1, 1, 1, HEAD.length).setValues([row]);
     sh.getRange(sh.getLastRow(), 3).setNumberFormat('dd.mm.yyyy');
     return { ok: true, row: sh.getLastRow() };
